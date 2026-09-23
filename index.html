@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LifeVault</title>
+<meta name="theme-color" content="#4f46e5">
+<meta name="description" content="Schule und Alltag organisiert an einem Ort: Unterlagen, Notizen, Fotos, Aufgaben und Kalender">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#f3f4f8;--card:#ffffff;--bar:rgba(255,255,255,.92);--text:#1b1f2e;--muted:#6a7285;--line:#e3e6ee;
+  --accent:#4f46e5;--accent-ink:#ffffff;--accent-soft:#eceeff;--danger:#d92d20;--warn:#d97706;--ok:#12a150;
+  --accent2:#0ea5e9;--accent2-soft:#e0f4fd;
+  --radius:14px;--shadow:0 1px 2px rgba(16,24,40,.06),0 2px 8px rgba(16,24,40,.06);
+  --nav-h:62px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e1017;--card:#171a23;--bar:rgba(23,26,35,.92);--text:#e9ebf2;--muted:#9aa2b6;--line:#272c3a;
+    --accent:#8b93ff;--accent-ink:#0e1017;--accent-soft:#242a4d;--danger:#f97066;--warn:#fbbf24;--ok:#4ade80;
+    --accent2:#38bdf8;--accent2-soft:#12303d;
+    --shadow:0 1px 2px rgba(0,0,0,.4);color-scheme:dark}
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+h1,h2,h3{margin:0;line-height:1.25}
+small,.muted{color:var(--muted)}
+.ic{width:20px;height:20px;flex:none;vertical-align:middle}
+.hidden,[hidden]{display:none!important}
+
+/* ---------- Layout ---------- */
+#app{min-height:100vh}
+#top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;padding:calc(8px + var(--safe-t)) 10px 8px;
+  background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);min-height:56px}
+#top h1{font-size:1.08rem;font-weight:650;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#top .tbtns{display:flex;gap:2px;align-items:center}
+#saved{font-size:.78rem;color:var(--muted);opacity:0;transition:opacity .3s;white-space:nowrap;margin-right:4px}
+#saved.on{opacity:1}
+.icon-btn{border:0;background:transparent;width:42px;height:42px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);position:relative}
+.icon-btn:hover{background:var(--accent-soft)}
+.icon-btn .dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid var(--card)}
+.icon-btn.sync.spin .ic{animation:spin 1s linear infinite}
+.icon-btn.sync.err{color:var(--danger)}
+.icon-btn.sync.off{color:var(--muted)}
+.icon-btn.sync.ok{color:var(--ok)}
+@keyframes spin{to{transform:rotate(360deg)}}
+#view{padding:14px 14px calc(var(--nav-h) + var(--safe-b) + 90px);max-width:940px;margin:0 auto}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+#nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:var(--nav-h);color:var(--muted);font-size:.72rem;font-weight:550;position:relative}
+#nav a.on{color:var(--accent)}
+#nav .badge{position:absolute;top:7px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:.68rem;display:flex;align-items:center;justify-content:center;padding:0 5px}
+#nav .dot{position:absolute;top:10px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--danger)}
+.brand{display:none}
+@media (min-width:900px){
+  #nav{top:0;bottom:0;right:auto;width:224px;flex-direction:column;justify-content:flex-start;gap:4px;padding:16px 12px;border-top:0;border-right:1px solid var(--line);background:var(--card);backdrop-filter:none}
+  #nav a{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;height:46px;padding:0 14px;border-radius:12px;font-size:.98rem}
+  #nav a.on{background:var(--accent-soft)}
+  #nav .badge{position:static;margin-left:auto}
+  #nav .dot{position:static;margin-left:auto}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:1.15rem;padding:6px 14px 18px}
+  .brand span{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+  #main{margin-left:224px}
+  #view{padding-bottom:60px}
+  .fab{right:max(24px,calc((100vw - 224px - 940px)/2 + 14px))!important;bottom:28px!important}
+}
+
+/* ---------- Basics ---------- */
+section{margin:0 0 22px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 2px 10px}
+.sec-h h2{font-size:1.02rem}
+.sec-h a{font-size:.9rem}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
+.pad{padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:550;min-height:42px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.small{min-height:34px;padding:5px 11px;font-size:.9rem;border-radius:10px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.inp,select.inp,textarea.inp{width:100%;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;min-height:44px;outline:none}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.inp{resize:none;line-height:1.5;min-height:96px}
+label.lbl{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:12px 2px 5px;text-transform:uppercase;letter-spacing:.03em}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);color:var(--text);cursor:pointer;min-height:56px}
+.row:last-child{border-bottom:0}
+.row:hover{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.row .grow{flex:1;min-width:0}
+.row b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ico{width:38px;height:38px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.ico.k-paper{background:#fff3e0;color:#c2410c}.ico.k-both{background:#e6f7ee;color:#15803d}
+@media (prefers-color-scheme:dark){.ico.k-paper{background:#3a2a17;color:#fdba74}.ico.k-both{background:#15301f;color:#86efac}}
+.badges{display:flex;gap:8px;color:var(--muted);font-size:.82rem;align-items:center}
+.badges i{font-style:normal;display:inline-flex;align-items:center;gap:3px}
+.badges .ic{width:15px;height:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:.8rem;background:var(--accent-soft);color:var(--accent);font-weight:550;border:0}
+.chip.btnlike{cursor:pointer;background:var(--card);border:1px solid var(--line);color:var(--text)}
+.chip.btnlike.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip .x{cursor:pointer;display:inline-flex}
+.chip .x .ic{width:13px;height:13px}
+.seg{display:flex;background:var(--accent-soft);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;min-width:0;white-space:nowrap;border:0;background:transparent;padding:8px 2px;border-radius:9px;cursor:pointer;font-weight:600;color:var(--muted);display:flex;gap:6px;align-items:center;justify-content:center;font-size:.92rem}
+.seg button.on{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+.spacesw{margin-bottom:16px}
+.tag.space-schule{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.tag.space-alltag{background:color-mix(in srgb,var(--accent2) 18%,transparent);color:var(--accent2)}
+.empty{text-align:center;padding:34px 18px;color:var(--muted)}
+.empty .ic{width:42px;height:42px;opacity:.55;margin-bottom:8px}
+.empty p{margin:6px auto 14px;max-width:34ch}
+.fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:15;height:54px;padding:0 20px 0 16px;border-radius:27px;border:0;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;gap:8px;font-weight:650;box-shadow:0 6px 18px rgba(79,70,229,.4);cursor:pointer}
+.fab .ic{width:22px;height:22px}
+
+/* ---------- Cards ---------- */
+.ycard,.fcard{display:block;color:var(--text);padding:14px 16px;position:relative;overflow:hidden}
+.fcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c,var(--accent))}
+.fcard{padding-left:22px}
+.fcard b,.ycard b{display:block;font-size:1.02rem;margin-bottom:3px}
+.ycard .big{font-size:1.5rem;font-weight:750;margin-bottom:2px}
+.crumb{font-size:.82rem;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;margin:2px 2px 10px}
+.fhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.fhead .dotc{width:14px;height:14px;border-radius:5px;background:var(--c)}
+.tabs{display:flex;gap:4px;margin:0 0 14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{flex:1;min-width:0;white-space:nowrap;border:0;background:transparent;padding:9px 4px;border-radius:10px;cursor:pointer;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.tabs button.on{background:var(--accent-soft);color:var(--accent)}
+.tabs .n{font-size:.75rem;background:var(--line);border-radius:9px;padding:0 6px;color:var(--muted)}
+.filters{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.filters .inp{flex:1;min-width:150px}
+.filters select.inp{width:190px;max-width:100%;flex:none;text-overflow:ellipsis}
+
+/* ---------- Doc ---------- */
+.titleinp{font-size:1.25rem;font-weight:700;line-height:1.3;border:0;background:transparent;padding:6px 2px;width:100%;outline:none;min-height:0;border-bottom:2px solid transparent;resize:none;overflow:hidden;display:block;font-family:inherit}
+.titleinp:focus{border-bottom-color:var(--accent)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:6px 8px;background:var(--card);min-height:44px}
+.tagbox input{border:0;outline:0;background:transparent;flex:1;min-width:90px;padding:4px}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.ph{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--accent-soft);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .pn{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;font-size:.75rem;border-radius:8px;padding:1px 8px;font-weight:650}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:.72rem;padding:16px 6px 5px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph.add{border:2px dashed var(--line);background:transparent;flex-direction:column;gap:6px;font-weight:600;font-size:.85rem}
+.ph.add:hover{border-color:var(--accent);color:var(--accent)}
+.ph .cl{display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:.75rem}
+.ph.cloud .cl{display:flex}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 2px 0}
+.place{display:flex;gap:8px;align-items:center}
+
+/* ---------- Todos ---------- */
+.todo{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line)}
+.todo:last-child{border-bottom:0}
+.todo .chk{width:26px;height:26px;border-radius:9px;border:2px solid var(--muted);background:transparent;cursor:pointer;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;color:#fff;padding:0}
+.todo.p2 .chk{border-color:var(--danger)}
+.todo.done .chk{background:var(--ok);border-color:var(--ok)}
+.todo .chk .ic{width:16px;height:16px;stroke-width:3}
+.todo .tbody{flex:1;min-width:0;cursor:pointer}
+.todo .ttl{font-weight:580;word-break:break-word}
+.todo.done .ttl{text-decoration:line-through;color:var(--muted)}
+.tmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;align-items:center;font-size:.78rem}
+.tag{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:1px 8px;background:var(--line);color:var(--muted);font-weight:550}
+.tag.due-over{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.tag.due-today{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.tag.p2{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.tag.fld{color:#fff}
+.tag .ic{width:12px;height:12px}
+.grp{font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 4px 8px}
+.grp.over{color:var(--danger)}
+.quick{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.quick .inp{flex:1;min-width:180px}
+.quick input[type=date]{flex:none;width:auto;min-width:150px}
+.subrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.subrow input[type=checkbox]{width:20px;height:20px;flex:none}
+.subrow .inp{min-height:38px;padding:6px 10px}
+
+/* ---------- Modal / Toast / Lightbox ---------- */
+.modal{position:fixed;inset:0;z-index:80;background:rgba(10,12,20,.55);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.mbox{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + var(--safe-b));max-height:92vh;overflow:auto;animation:up .18s}
+@media (min-width:700px){.modal{align-items:center}.mbox{border-radius:20px}}
+.mbox h3{font-size:1.1rem;margin-bottom:6px}
+.mbox p{margin:6px 0 4px;color:var(--muted)}
+.mact{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.menu button{display:flex;gap:12px;align-items:center;width:100%;border:0;background:transparent;padding:14px 8px;text-align:left;cursor:pointer;border-radius:10px;font-weight:550}
+.menu button:hover{background:var(--accent-soft)}
+.menu button.danger{color:var(--danger)}
+.colors{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.colors button{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+.colors button.on{border-color:var(--text)}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(30px);opacity:.6}}
+#toasts{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-b) + 14px);z-index:90;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 12px}
+@media (min-width:900px){#toasts{bottom:24px;left:224px}}
+.toast{pointer-events:auto;background:#1f2333;color:#fff;border-radius:14px;padding:11px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;gap:14px;align-items:center;max-width:460px;font-size:.93rem;animation:up .18s}
+.toast.err{background:#b42318}
+.toast button{border:0;background:transparent;color:#a5b4fc;font-weight:700;cursor:pointer;padding:0}
+#lb{position:fixed;inset:0;z-index:70;background:#000;display:flex;flex-direction:column;color:#fff;touch-action:manipulation}
+#lb .lb-top,#lb .lb-bot{display:flex;align-items:center;gap:4px;padding:calc(8px + var(--safe-t)) 8px 8px;background:rgba(0,0,0,.6)}
+#lb .lb-bot{padding:8px 8px calc(10px + var(--safe-b));flex-wrap:wrap}
+#lb .icon-btn{color:#fff}
+#lb .icon-btn:hover{background:rgba(255,255,255,.15)}
+#lb .lb-title{flex:1;text-align:center;font-weight:600;font-size:.95rem}
+#lb .lb-stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;min-height:0}
+#lb .lb-stage img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+#lb .lb-stage.zoom{align-items:flex-start;justify-content:flex-start}
+#lb .lb-stage.zoom img{max-width:none;max-height:none;width:240%;cursor:zoom-out}
+#lb .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;border:0;border-radius:12px;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#lb .lb-nav.prev{left:6px}#lb .lb-nav.next{right:6px}
+#lb .lb-cap{flex:1;min-width:180px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:8px 12px;min-height:40px}
+#lb .lb-cap::placeholder{color:rgba(255,255,255,.55)}
+#lb .lb-msg{color:#cbd5e1;text-align:center;padding:20px}
+
+/* ---------- Settings ---------- */
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.93rem}
+.kv:last-child{border:0}
+details.guide{margin-top:12px}
+details.guide summary{cursor:pointer;font-weight:650;padding:6px 0}
+details.guide ol{padding-left:20px;margin:8px 0}
+details.guide li{margin-bottom:8px}
+code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.88em;word-break:break-all}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:.82rem;font-weight:650}
+.pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.pill.err{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.pill.off{background:var(--line);color:var(--muted)}
+.snip{font-size:.85rem;color:var(--muted)}
+.snip mark{background:color-mix(in srgb,var(--warn) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+
+@media (max-width:430px){
+  .tabs button .ic,.seg button .ic{display:none}
+  .tabs button{font-size:.9rem}.seg button{font-size:.88rem}
+}
+
+/* ---------- Kalender ---------- */
+.calnav{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.calnav b{font-size:1rem;min-width:0;text-align:center;white-space:nowrap}
+.cal-grid{display:grid;grid-template-columns:28px repeat(7,1fr);gap:3px}
+.cal-head{font-size:.7rem;color:var(--muted);text-align:center;font-weight:650;padding-bottom:4px}
+.cal-wk{border:0;background:transparent;color:var(--muted);font-size:.68rem;font-weight:700;border-radius:8px;cursor:pointer;padding:0}
+.cal-wk:hover{background:var(--accent-soft);color:var(--accent)}
+.cal-day{position:relative;aspect-ratio:1/1;border:0;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:5px 2px 4px;cursor:pointer;color:var(--text)}
+.cal-day:hover{background:var(--accent-soft)}
+.cal-day .dn{font-size:.8rem;font-weight:600;line-height:1}
+.cal-day.today .dn{background:var(--accent);color:var(--accent-ink);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cal-day.out{opacity:.32}
+.cal-day .dots{display:flex;gap:2px}
+.cal-day .dots i{width:5px;height:5px;border-radius:50%;display:block}
+.cal-day .dots i.event{border-radius:1px}
+.turnus-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.turnus-row:last-child{border-bottom:0}
+.turnus-row.now{background:var(--accent-soft)}
+.tw-label{min-width:130px}
+.tw-label b,.tw-label small{display:block}
+.tw-chips{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.74rem}.calnav b{font-size:.92rem}}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="nav" aria-label="Hauptnavigation"></nav>
+  <div id="main">
+    <header id="top"></header>
+    <main id="view"></main>
+  </div>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<input type="file" id="in-cam" accept="image/*" capture="environment" hidden>
+<input type="file" id="in-gal" accept="image/*" multiple hidden>
+<input type="file" id="in-file" multiple hidden>
+<input type="file" id="in-import" accept="application/json,.json" hidden>
+<script>
+'use strict';
+/* =====================================================================
+   LifeVault – Kernlogik
+   Datenmodell: zwei Bereiche (Schule / Alltag)
+                Schule:  Schuljahr (years) → Lernfeld (fields) → Unterlage (docs)
+                Alltag:  Kategorie (fields, ohne yearId) → Unterlage (docs)
+                Unterlage → Anhänge (atts: Dateien oder Fotos/Seiten)
+                Aufgaben (todos) hängen optional an Lernfeld/Kategorie und/oder Unterlage,
+                tragen aber immer ein explizites "space" (schule/alltag)
+                Arbeiten (exams, Schule) und Termine (events, Alltag, mit Wiederholung)
+                laufen im Kalender zentral zusammen.
+   Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
+   ===================================================================== */
+const APP_VERSION = '1.0.0';
+const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'events'];
+const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], events: [] };
+const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
+const SPACES = { schule: { label: 'Schule', icon: 'book' }, alltag: { label: 'Alltag', icon: 'home' } };
+const FWORD = { schule: 'Lernfeld', alltag: 'Kategorie' };
+const KINDS = {
+  digital: { label: 'Digital', icon: 'file', hint: 'Datei(en) wie PDF, Word, Bilder' },
+  paper: { label: 'Schriftlich', icon: 'pen', hint: 'Papier / Heft – dazu Fotos der Seiten' },
+  both: { label: 'Beides', icon: 'layers', hint: 'Digital vorhanden und auf Papier' }
+};
+const MAX_FILE = 40 * 1024 * 1024;      // größte erlaubte Datei
+const AUTO_DL = 8 * 1024 * 1024;        // bis zu dieser Größe wird beim Sync automatisch geladen
+
+/* ---------- Helfer ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+const now = () => Date.now();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const daysBetween = (a, b) => Math.round((parseYmd(b) - parseYmd(a)) / 864e5);
+const cmp = (a, b) => String(a).localeCompare(String(b), 'de', { numeric: true, sensitivity: 'base' });
+const fmtDate = s => s ? parseYmd(s).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+function fmtDue(s) {
+  const d = daysBetween(today(), s);
+  if (d === 0) return 'Heute';
+  if (d === 1) return 'Morgen';
+  if (d === -1) return 'Gestern';
+  if (d < 0) return `vor ${-d} Tagen`;
+  if (d < 7) return parseYmd(s).toLocaleDateString('de-DE', { weekday: 'long' });
+  return parseYmd(s).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+function fmtDateTime(ts) {
+  if (!ts) return 'noch nie';
+  return new Date(ts).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function defaultYearName() {
+  const d = new Date(), y = d.getFullYear();
+  return d.getMonth() >= 7 ? `Schuljahr ${y}/${String(y + 1).slice(2)}` : `Schuljahr ${y - 1}/${String(y).slice(2)}`;
+}
+const ICONS = {
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  layers: '<path d="M12 2 2 7l10 5 10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+  clip: '<path d="m21.4 11-9.2 9.2a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5"/>',
+  cloud: '<path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+  cloudoff: '<path d="M18 10h-1.3a8 8 0 0 0-11.4-4.3M5.3 5.7A8 8 0 0 0 9 20h9a5 5 0 0 0 2.6-9.3"/><path d="M2 2l20 20"/>',
+  back: '<path d="m15 18-6-6 6-6"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>',
+  more: '<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>',
+  rotL: '<path d="M1 4v6h6"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/>',
+  rotR: '<path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  chevr: '<path d="m9 18 6-6-6-6"/>',
+  chevl: '<path d="m15 18-6-6 6-6"/>',
+  note: '<path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/><path d="M8 9h8M8 13h4"/>',
+  cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  left: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  right: '<path d="M5 12h14M12 5l7 7-7 7"/>',
+  refresh: '<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  home: '<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/>',
+  open: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>',
+  warn: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'
+};
+const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+/* ---------- Toast ---------- */
+function toast(msg, type = '', action) {
+  const box = $('#toasts'), t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button type="button">${esc(action.label)}</button>` : '');
+  if (action) $('button', t).onclick = () => { t.remove(); action.fn(); };
+  box.appendChild(t);
+  setTimeout(() => t.remove(), action ? 8000 : (type === 'err' ? 6500 : 3200));
+}
+
+/* ---------- IndexedDB ---------- */
+let DB;
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('schulvault', 3);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      // guard mit contains(): so bekommen auch bereits installierte Geräte die neuen Speicherbereiche, ohne die alten anzufassen
+      COLL.forEach(c => { if (!d.objectStoreNames.contains(c)) d.createObjectStore(c, { keyPath: 'id' }); });
+      if (!d.objectStoreNames.contains('blobs')) d.createObjectStore('blobs');   // key = Anhang-ID bzw. 't:'+ID für Vorschaubilder
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');     // key = 'rev:'+ID → Revision des lokalen Blobs
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function idb(store, mode, fn) {
+  return new Promise((res, rej) => {
+    const t = DB.transaction(store, mode), s = t.objectStore(store);
+    let out; const q = fn(s);
+    if (q) q.onsuccess = () => { out = q.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const idbAll = s => idb(s, 'readonly', o => o.getAll());
+const idbGet = (s, k) => idb(s, 'readonly', o => o.get(k));
+const idbHas = (s, k) => idb(s, 'readonly', o => o.getKey(k)).then(v => v !== undefined);
+const idbPut = (s, v, k) => idb(s, 'readwrite', o => k === undefined ? o.put(v) : o.put(v, k));
+const idbDel = (s, k) => idb(s, 'readwrite', o => o.delete(k));
+
+/* ---------- Daten ---------- */
+const live = t => S[t].filter(x => !x.deleted);
+const byId = (t, id) => S[t].find(x => x.id === id && !x.deleted);
+function persist(t, o) { idbPut(t, o).catch(() => toast('Speichern fehlgeschlagen (Speicher voll?)', 'err')); }
+function touch(t, o) { o.updatedAt = now(); persist(t, o); scheduleSync(); }
+function add(t, props) {
+  const o = { id: uid(), createdAt: now(), updatedAt: now(), deleted: false, ...props };
+  S[t].push(o); persist(t, o); scheduleSync(); return o;
+}
+function del(t, o) {
+  o.deleted = true; touch(t, o);
+  if (t === 'years') live('fields').filter(f => f.yearId === o.id).forEach(f => del('fields', f));
+  if (t === 'fields') {
+    live('docs').filter(d => d.fieldId === o.id).forEach(d => del('docs', d));
+    live('todos').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; x.docId = null; touch('todos', x); });
+    live('exams').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('exams', x); });
+    live('events').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('events', x); });
+  }
+  if (t === 'docs') {
+    live('atts').filter(a => a.docId === o.id).forEach(a => del('atts', a));
+    live('todos').filter(x => x.docId === o.id).forEach(x => { x.docId = null; touch('todos', x); });
+  }
+  if (t === 'atts') dropLocalBlob(o.id);
+}
+const fieldsOfYear = yid => live('fields').filter(f => f.yearId === yid).sort((a, b) => cmp(a.name, b.name));
+const altagFields = () => live('fields').filter(f => !f.yearId).sort((a, b) => cmp(a.name, b.name));
+const spaceOfField = f => (f && f.yearId) ? 'schule' : (f ? 'alltag' : 'schule');
+const todoSpace = t => t.space || spaceOfField(byId('fields', t.fieldId));
+const todosOfSpace = sp => live('todos').filter(t => todoSpace(t) === sp);
+const docsOfSpace = sp => live('docs').filter(d => spaceOfField(byId('fields', d.fieldId)) === sp);
+const docsOfField = fid => live('docs').filter(d => d.fieldId === fid);
+const attsOf = (docId, role) => live('atts').filter(a => a.docId === docId && a.role === role).sort((a, b) => a.order - b.order);
+const todosOpen = () => live('todos').filter(t => !t.done);
+function yearOfField(f) { return f ? byId('years', f.yearId) : null; }
+
+/* ---------- Kalender & Turnus ---------- */
+function mondayOf(d) { const day = d.getDay() || 7; const m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate() - day + 1); return m; }
+const weekKeyOf = s => ymd(mondayOf(parseYmd(s)));
+function isoWeekNum(d) {
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = t.getDay() || 7;
+  t.setDate(t.getDate() + 4 - day);
+  const yearStart = new Date(t.getFullYear(), 0, 1);
+  return Math.ceil(((t - yearStart) / 864e5 + 1) / 7);
+}
+function weekRangeLabel(wk) {
+  const mon = parseYmd(wk), sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const mOpt = { day: 'numeric', month: 'short' }, fOpt = { day: 'numeric', month: 'short', year: 'numeric' };
+  if (mon.getFullYear() !== sun.getFullYear()) return `${mon.toLocaleDateString('de-DE', fOpt)} – ${sun.toLocaleDateString('de-DE', fOpt)}`;
+  if (mon.getMonth() !== sun.getMonth()) return `${mon.toLocaleDateString('de-DE', mOpt)} – ${sun.toLocaleDateString('de-DE', fOpt)}`;
+  return `${mon.getDate()}.–${sun.getDate()}. ${sun.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })}`;
+}
+function hexA(hex, a) {
+  const h = (hex || '#4f46e5').replace('#', '');
+  const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function setTurnusWeek(wk, typeId) {
+  const cur = S.turnusWeeks.find(x => x.id === wk);   // auch stillgelegte (gelöschte) Einträge wiederverwenden statt Duplikate anzulegen
+  if (!typeId) { if (cur && !cur.deleted) { cur.deleted = true; touch('turnusWeeks', cur); } return; }
+  if (cur) { cur.deleted = false; cur.typeId = typeId; touch('turnusWeeks', cur); }
+  else add('turnusWeeks', { id: wk, typeId });
+}
+function upcomingExams(n) {
+  return live('exams').filter(e => daysBetween(today(), e.date) >= 0)
+    .sort((a, b) => a.date.localeCompare(b.date) || cmp(a.title, b.title)).slice(0, n);
+}
+function examSoonCount() {
+  return live('exams').filter(e => e.remind != null).filter(e => { const d = daysBetween(today(), e.date); return d >= 0 && d <= e.remind; }).length;
+}
+const REMIND_OPTS = [['', 'Keine'], ['0', 'Am Tag selbst'], ['1', '1 Tag vorher'], ['2', '2 Tage vorher'], ['3', '3 Tage vorher'], ['5', '5 Tage vorher'], ['7', '1 Woche vorher']];
+
+/* ---------- Termine (Alltag) mit Wiederholung ---------- */
+const REPEAT_OPTS = [['once', 'Einmalig'], ['weekly', 'Wöchentlich'], ['monthly', 'Monatlich'], ['yearly', 'Jährlich (z. B. Geburtstag)']];
+const REPEAT_LABEL = Object.fromEntries(REPEAT_OPTS);
+function eventOccursOn(e, dy) {
+  if (!e.date || dy < e.date) return false;
+  if (e.date === dy) return true;
+  if (!e.repeat || e.repeat === 'once') return false;
+  const start = parseYmd(e.date), d = parseYmd(dy);
+  if (e.repeat === 'weekly') return Math.round((d - start) / 864e5) % 7 === 0;
+  if (e.repeat === 'monthly') return d.getDate() === start.getDate();
+  if (e.repeat === 'yearly') return d.getDate() === start.getDate() && d.getMonth() === start.getMonth();
+  return false;
+}
+const eventsOnDay = dy => live('events').filter(e => eventOccursOn(e, dy)).sort((a, b) => cmp(a.title, b.title));
+function nextOccurrence(e, fromYmd) {
+  if (!e.date) return null;
+  if (!e.repeat || e.repeat === 'once') return e.date >= fromYmd ? e.date : null;
+  const d = parseYmd(fromYmd);
+  for (let i = 0; i < 400; i++) {   // knapp über ein Jahr als Sicherheitsgrenze
+    const dy = ymd(d);
+    if (dy >= e.date && eventOccursOn(e, dy)) return dy;
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+function upcomingEvents(n) {
+  return live('events').map(e => ({ e, occ: nextOccurrence(e, today()) })).filter(x => x.occ)
+    .sort((a, b) => a.occ.localeCompare(b.occ) || cmp(a.e.title, b.e.title)).slice(0, n).map(x => x.e);
+}
+function eventSoonCount() {
+  return live('events').filter(e => e.remind != null).filter(e => {
+    const occ = nextOccurrence(e, today()); return occ && daysBetween(today(), occ) <= e.remind;
+  }).length;
+}
+
+/* ---------- Lokale Popup-Benachrichtigungen (funktionieren nur, solange die App offen/im Hintergrund läuft – GitHub Pages hat keinen eigenen Push-Server) ---------- */
+function triggerTs(dateYmd, remindDays, timeHHMM) {
+  if (remindDays == null || !dateYmd) return null;
+  const d = parseYmd(dateYmd); d.setDate(d.getDate() - remindDays);
+  const [hh, mm] = (timeHHMM || '08:00').split(':').map(Number);
+  d.setHours(hh || 0, mm || 0, 0, 0);
+  return d.getTime();
+}
+async function showNotif(title, body, url) {
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: url + ':' + title, data: { url } });
+    } else if ('Notification' in window) {
+      new Notification(title, { body, icon: 'icon-192.png' });
+    }
+  } catch (e) { /* z. B. Berechtigung inzwischen entzogen */ }
+}
+function checkNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  let seen; try { seen = JSON.parse(localStorage.getItem('sv_notified') || '{}'); } catch (e) { seen = {}; }
+  const nowTs = now(); let changed = false;
+  const fire = (key, title, body, url) => { if (seen[key]) return; showNotif(title, body, url); seen[key] = nowTs; changed = true; };
+  live('todos').filter(t => !t.done && t.due).forEach(t => {
+    const ts = triggerTs(t.due, t.remind, t.notifyTime); if (ts == null || nowTs < ts) return;
+    const f = byId('fields', t.fieldId);
+    fire('t:' + t.id + ':' + t.due, 'Aufgabe fällig: ' + t.title, fmtDue(t.due) + (f ? ' · ' + f.name : ''), '#/todo');
+  });
+  live('exams').forEach(e => {
+    const ts = triggerTs(e.date, e.remind, e.notifyTime); if (ts == null || nowTs < ts) return;
+    const f = byId('fields', e.fieldId);
+    fire('e:' + e.id + ':' + e.date, 'Arbeit: ' + e.title, fmtDue(e.date) + (f ? ' · ' + f.name : ''), '#/cal');
+  });
+  live('events').forEach(e => {
+    const occ = nextOccurrence(e, today()); if (!occ) return;
+    const ts = triggerTs(occ, e.remind, e.notifyTime); if (ts == null || nowTs < ts) return;
+    const f = byId('fields', e.fieldId);
+    fire('ev:' + e.id + ':' + occ, 'Termin: ' + e.title, fmtDue(occ) + (f ? ' · ' + f.name : ''), '#/cal');
+  });
+  if (changed) {
+    const cutoff = nowTs - 60 * 86400000;
+    Object.keys(seen).forEach(k => { if (seen[k] < cutoff) delete seen[k]; });
+    localStorage.setItem('sv_notified', JSON.stringify(seen));
+  }
+}
+
+/* ---------- Verzögertes Speichern (Notizen etc.) ---------- */
+const pending = new Map();
+function debounced(key, fn, ms = 450) {
+  const p = pending.get(key); if (p) clearTimeout(p.t);
+  pending.set(key, { fn, t: setTimeout(() => { pending.delete(key); fn(); }, ms) });
+}
+function flushAll() { for (const [, p] of pending) { clearTimeout(p.t); p.fn(); } pending.clear(); }
+let savedTimer;
+function showSaved() {
+  const el = $('#saved'); if (!el) return;
+  el.classList.add('on'); clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => el.classList.remove('on'), 1400);
+}
+
+/* ---------- Blobs, Fotos, Vorschaubilder ---------- */
+const urlCache = new Map();
+const HAVE = new Set();   // Anhänge, deren Datei lokal vorliegt
+const newRev = () => Math.random().toString(36).slice(2, 8);
+async function putBlob(id, blob, rev) { await idbPut('blobs', blob, id); await idbPut('meta', rev, 'rev:' + id); HAVE.add(id); }
+const getBlob = id => idbGet('blobs', id);
+async function dropLocalBlob(id) {
+  HAVE.delete(id);
+  await idbDel('blobs', id).catch(() => {}); await idbDel('blobs', 't:' + id).catch(() => {}); await idbDel('meta', 'rev:' + id).catch(() => {});
+  for (const k of [id, 't:' + id]) { if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); } }
+}
+async function resetThumb(id) {
+  await idbDel('blobs', 't:' + id).catch(() => {});
+  for (const k of [id, 't:' + id]) { if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); } }
+}
+async function drawScaled(blob, maxDim, rotate = 0) {
+  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const sc = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  let w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+  const c = document.createElement('canvas');
+  const swap = rotate % 180 !== 0;
+  c.width = swap ? h : w; c.height = swap ? w : h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.translate(c.width / 2, c.height / 2); g.rotate(rotate * Math.PI / 180);
+  g.drawImage(bmp, -w / 2, -h / 2, w, h);
+  if (bmp.close) bmp.close();
+  return c;
+}
+const canvasBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
+async function processPhoto(file) {
+  try {
+    const c = await drawScaled(file, 2200);
+    const b = await canvasBlob(c, .84);
+    if (b && (b.size < file.size || Math.max(c.width, c.height) < 2200)) return { blob: b, mime: 'image/jpeg' };
+  } catch (e) { /* z. B. HEIC ohne Browser-Unterstützung → Original behalten */ }
+  return { blob: file, mime: file.type || 'application/octet-stream' };
+}
+async function makeThumb(id, blob) {
+  try {
+    const c = await drawScaled(blob, 380);
+    const tb = await canvasBlob(c, .72);
+    if (tb) { await idbPut('blobs', tb, 't:' + id); return tb; }
+  } catch (e) { /* ignorieren */ }
+  return null;
+}
+async function thumbURL(att) {
+  const k = 't:' + att.id;
+  if (urlCache.has(k)) return urlCache.get(k);
+  let tb = await getBlob(k);
+  if (!tb) { const b = await getBlob(att.id); if (!b) return null; tb = await makeThumb(att.id, b); if (!tb) return null; }
+  const u = URL.createObjectURL(tb); urlCache.set(k, u); return u;
+}
+async function fullURL(att) {
+  if (urlCache.has(att.id)) return urlCache.get(att.id);
+  const b = await getBlob(att.id); if (!b) return null;
+  const u = URL.createObjectURL(b); urlCache.set(att.id, u); return u;
+}
+async function rotateAtt(att, deg) {
+  const b = await getBlob(att.id); if (!b) return;
+  const c = await drawScaled(b, 2600, ((deg % 360) + 360) % 360);
+  const nb = await canvasBlob(c, .86);
+  att.rev = newRev(); att.size = nb.size; att.mime = 'image/jpeg';
+  await resetThumb(att.id);
+  await putBlob(att.id, nb, att.rev);
+  touch('atts', att);
+}
+async function addAttachments(docId, files, role) {
+  const doc = byId('docs', docId); if (!doc) return 0;
+  let n = 0;
+  for (const f of files) {
+    if (f.size > MAX_FILE) { toast(`„${f.name}“ ist zu groß (max. ${fmtSize(MAX_FILE)})`, 'err'); continue; }
+    let blob = f, mime = f.type || 'application/octet-stream', name = f.name || 'Datei';
+    if (role === 'photo') {
+      if (!/^image\//.test(mime) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(name)) { toast(`„${name}“ ist kein Bild`, 'err'); continue; }
+      const p = await processPhoto(f); blob = p.blob; mime = p.mime;
+      const ext = mime === 'image/jpeg' ? 'jpg' : (mime.split('/')[1] || 'jpg');
+      name = `Foto ${new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')}.${ext}`;
+    }
+    const siblings = attsOf(docId, role);
+    const order = siblings.length ? Math.max(...siblings.map(s => s.order)) + 1 : 1;
+    const rev = newRev();
+    const att = add('atts', { docId, role, name, mime, size: blob.size, order, caption: '', rev });
+    try {
+      await putBlob(att.id, blob, rev);
+      if (role === 'photo') await makeThumb(att.id, blob);
+      n++;
+    } catch (e) { att.deleted = true; touch('atts', att); toast('Speichern fehlgeschlagen (Speicher voll?)', 'err'); }
+  }
+  if (n) { doc.updatedAt = now(); touch('docs', doc); }
+  return n;
+}
+/* =====================================================================
+   Sync über ein privates GitHub-Repo (nur Browser, kein eigener Server)
+   Repo-Aufbau:   data.json                 → alle Metadaten (Ordner, Notizen, Aufgaben …)
+                  files/<id>-<rev>          → Dateien und Fotos
+   Abgleich:      pro Eintrag gewinnt die zuletzt geänderte Version ("last write wins")
+   ===================================================================== */
+const SYNC = { state: 'off', msg: '', running: false, again: false, progress: '' };
+let syncTimer;
+
+function cfg() {
+  try { return Object.assign({ auto: true, branch: 'main' }, JSON.parse(localStorage.getItem('sv_cfg') || '{}')); }
+  catch (e) { return { auto: true, branch: 'main' }; }
+}
+function saveCfg(c) { localStorage.setItem('sv_cfg', JSON.stringify(c)); }
+const configured = () => { const c = cfg(); return !!(c.repo && c.token); };
+const lastSync = () => Number(localStorage.getItem('sv_last') || 0);
+
+function setSync(state, msg) {
+  SYNC.state = state; SYNC.msg = msg || '';
+  if (typeof updateSyncUI === 'function') updateSyncUI();
+}
+
+async function gh(c, method, path, body, accept) {
+  const r = await fetch((c.api || 'https://api.github.com') + path, {
+    method, cache: 'no-store',
+    headers: Object.assign({ Authorization: 'Bearer ' + c.token, Accept: accept || 'application/vnd.github+json' },
+      body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) {
+    let m = ''; try { m = (await r.json()).message; } catch (e) { /* kein JSON */ }
+    const err = new Error(m || 'HTTP ' + r.status); err.status = r.status; throw err;
+  }
+  return r;
+}
+function friendlyErr(e) {
+  if (e.status === 401) return 'Token ungültig oder abgelaufen';
+  if (e.status === 403) return /rate|abuse|secondary/i.test(e.message) ? 'GitHub-Limit erreicht – bitte später erneut versuchen' : 'Keine Berechtigung – der Token braucht „Contents: Read and write“';
+  if (e.status === 404) return 'Repository nicht gefunden – Name und Token-Zugriff prüfen';
+  if (e.name === 'TypeError') return 'Keine Verbindung zu GitHub';
+  return e.message || 'Unbekannter Fehler';
+}
+const blobToB64 = b => new Promise((res, rej) => {
+  const fr = new FileReader();
+  fr.onload = () => res(String(fr.result).split(',')[1] || '');
+  fr.onerror = () => rej(fr.error);
+  fr.readAsDataURL(b);
+});
+function strToB64(s) {
+  const bytes = new TextEncoder().encode(s); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+const remotePath = a => `files/${a.id}-${a.rev}`;
+
+async function ghTree(c) {
+  try {
+    const r = await gh(c, 'GET', `/repos/${c.repo}/git/trees/${encodeURIComponent(c.branch || 'main')}?recursive=1`);
+    const j = await r.json(); const files = new Map(); let dataSha = null;
+    for (const t of j.tree || []) {
+      if (t.type !== 'blob') continue;
+      if (t.path === 'data.json') dataSha = t.sha; else if (t.path.startsWith('files/')) files.set(t.path, t.sha);
+    }
+    return { dataSha, files };
+  } catch (e) {
+    if (e.status === 409) return { dataSha: null, files: new Map() };   // leeres Repo
+    throw e;
+  }
+}
+const ghRaw = (c, sha) => gh(c, 'GET', `/repos/${c.repo}/git/blobs/${sha}`, null, 'application/vnd.github.raw+json');
+
+function snapshot() { const o = { v: 1, app: 'schulvault', saved: now() }; COLL.forEach(k => o[k] = S[k]); return o; }
+
+/* Fremde Daten einmischen. Neuere Einträge gewinnen. */
+function mergeIn(data) {
+  let changed = false, needPush = false;
+  for (const k of COLL) {
+    const remote = new Map(((data && data[k]) || []).map(x => [x.id, x]));
+    const local = new Map(S[k].map(x => [x.id, x]));
+    for (const [id, r] of remote) {
+      const l = local.get(id);
+      if (!l) { S[k].push(r); persist(k, r); changed = true; }
+      else if ((r.updatedAt || 0) > (l.updatedAt || 0)) {
+        Object.keys(l).forEach(p => delete l[p]); Object.assign(l, r); persist(k, l); changed = true;
+        if (k === 'atts' && l.deleted) dropLocalBlob(l.id);
+      }
+    }
+    for (const [id, l] of local) {
+      const r = remote.get(id);
+      if (!r || (r.updatedAt || 0) < (l.updatedAt || 0)) needPush = true;
+    }
+  }
+  return { changed, needPush };
+}
+
+async function saveDownloaded(a, buf) {
+  const blob = new Blob([buf], { type: a.mime || 'application/octet-stream' });
+  await resetThumb(a.id); await putBlob(a.id, blob, a.rev);
+}
+
+async function syncBlobs(c, remote) {
+  let changed = false;
+  const ups = [], downs = [], dels = [];
+  const byAtt = new Map();
+  for (const [p, sha] of remote.files) {
+    const id = p.slice(6).split('-')[0];
+    if (!byAtt.has(id)) byAtt.set(id, []);
+    byAtt.get(id).push({ p, sha });
+  }
+  for (const a of S.atts) {
+    if (a.deleted) { (byAtt.get(a.id) || []).forEach(f => dels.push(f)); continue; }
+    const has = await idbHas('blobs', a.id), lr = await idbGet('meta', 'rev:' + a.id);
+    const rsha = remote.files.get(remotePath(a));
+    if (has && lr === a.rev) { if (!rsha) ups.push(a); }
+    else if (rsha && (a.size || 0) <= AUTO_DL) downs.push({ a, sha: rsha });
+  }
+  let i = 0;
+  for (const f of dels) {
+    SYNC.progress = 'Räume auf…'; if (typeof updateSyncUI === 'function') updateSyncUI();
+    try { await gh(c, 'DELETE', `/repos/${c.repo}/contents/${f.p}`, { message: 'delete ' + f.p, sha: f.sha, branch: c.branch }); }
+    catch (e) { if (![404, 409, 422].includes(e.status)) throw e; }
+  }
+  for (const a of ups) {
+    SYNC.progress = `Lade hoch ${++i}/${ups.length}`; if (typeof updateSyncUI === 'function') updateSyncUI();
+    const b = await getBlob(a.id); if (!b) continue;
+    try { await gh(c, 'PUT', `/repos/${c.repo}/contents/${remotePath(a)}`, { message: 'add ' + a.name, content: await blobToB64(b), branch: c.branch }); }
+    catch (e) { if (![409, 422].includes(e.status)) throw e; }
+  }
+  i = 0;
+  for (const d of downs) {
+    SYNC.progress = `Lade herunter ${++i}/${downs.length}`; if (typeof updateSyncUI === 'function') updateSyncUI();
+    const r = await ghRaw(c, d.sha);
+    await saveDownloaded(d.a, await r.arrayBuffer()); changed = true;
+  }
+  return { changed };
+}
+
+async function ghPutData(c, sha) {
+  await gh(c, 'PUT', `/repos/${c.repo}/contents/data.json`, {
+    message: 'LifeVault ' + new Date().toISOString(),
+    content: strToB64(JSON.stringify(snapshot())), branch: c.branch, sha: sha || undefined
+  });
+}
+
+async function runSync(manual = false) {
+  const c = cfg();
+  if (!c.repo || !c.token) { if (manual) { toast('Sync ist noch nicht eingerichtet'); location.hash = '#/settings'; } return; }
+  if (SYNC.running) { SYNC.again = true; return; }
+  if (!navigator.onLine) { setSync('err', 'Offline – Sync folgt, sobald du online bist'); if (manual) toast('Offline', 'err'); return; }
+  SYNC.running = true; setSync('syncing', 'Synchronisiere …'); flushAll();
+  let anyChange = false;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      const remote = await ghTree(c);
+      let rdata = null;
+      if (remote.dataSha) rdata = JSON.parse(await (await ghRaw(c, remote.dataSha)).text());
+      const m = mergeIn(rdata); if (m.changed) anyChange = true;
+      const b = await syncBlobs(c, remote); if (b.changed) anyChange = true;
+      if (!rdata || m.needPush) {
+        try { await ghPutData(c, remote.dataSha); }
+        catch (e) { if ((e.status === 409 || e.status === 422) && attempt < 3) continue; throw e; }
+      }
+      break;
+    }
+    localStorage.setItem('sv_last', String(now()));
+    setSync('ok', 'Synchronisiert');
+    if (manual) toast('Synchronisiert ✓');
+    if (anyChange && typeof rerenderSoon === 'function') rerenderSoon();
+  } catch (e) {
+    setSync('err', friendlyErr(e));
+    if (manual) toast(friendlyErr(e), 'err');
+  } finally {
+    SYNC.running = false; SYNC.progress = '';
+    if (typeof updateSyncUI === 'function') updateSyncUI();
+    if (SYNC.again) { SYNC.again = false; scheduleSync(600); }
+  }
+}
+function scheduleSync(ms = 4000) {
+  const c = cfg(); if (!c.auto || !c.repo || !c.token) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { if (navigator.onLine) runSync(); }, ms);
+}
+
+/* Einzelne Datei bei Bedarf aus der Cloud holen */
+async function downloadAtt(a) {
+  const c = cfg(); if (!configured()) throw new Error('Sync ist nicht eingerichtet');
+  const remote = await ghTree(c);
+  const sha = remote.files.get(remotePath(a));
+  if (!sha) throw new Error('Die Datei ist noch nicht in der Cloud – das andere Gerät muss zuerst synchronisieren');
+  await saveDownloaded(a, await (await ghRaw(c, sha)).arrayBuffer());
+}
+async function ensureBlob(a) {
+  const has = await idbHas('blobs', a.id), lr = await idbGet('meta', 'rev:' + a.id);
+  if (has && (lr === a.rev || !configured())) return getBlob(a.id);
+  try { await downloadAtt(a); }
+  catch (e) { if (has) return getBlob(a.id); throw e; }
+  return getBlob(a.id);
+}
+
+async function testConnection(c) {
+  const r = await (await gh(c, 'GET', `/repos/${c.repo}`)).json();
+  return { branch: r.default_branch || 'main', canPush: !r.permissions || r.permissions.push !== false, priv: r.private };
+}
+
+/* ---------- Sicherung (nur Daten, ohne Dateien) ---------- */
+function exportJSON() {
+  const b = new Blob([JSON.stringify(snapshot(), null, 1)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+  a.download = `lifevault-daten-${today()}.json`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+async function importJSON(file) {
+  const data = JSON.parse(await file.text());
+  if (!data || data.app !== 'schulvault') throw new Error('Das ist keine LifeVault-Sicherung');
+  const m = mergeIn(data); scheduleSync();
+  return m.changed;
+}
+/* =====================================================================
+   Oberfläche Teil 1: Dialoge, Router, Ansichten (Start, Schuljahr/Kategorie, Lernfeld, Unterlage)
+   ===================================================================== */
+const UI = { space: localStorage.getItem('sv_space') === 'alltag' ? 'alltag' : 'schule', ftab: 'docs', fid: null, dkind: 'all', dq: '', dsort: 'date', tfilter: 'open', tfield: '', q: '', attachDoc: null, rerender: false, focusTag: false, calTab: 'month', calFilter: 'alle', calRef: null, turnusAnchor: null };
+let deferredInstall = null;
+function setSpace(v) { if (v !== 'schule' && v !== 'alltag') return; UI.space = v; UI.tfield = ''; localStorage.setItem('sv_space', v); }
+function spaceSwitcher() {
+  return `<div class="seg spacesw">${Object.entries(SPACES).map(([k, v]) => `<button type="button" data-a="space-switch" data-v="${k}" class="${UI.space === k ? 'on' : ''}">${ic(v.icon)} ${v.label}</button>`).join('')}</div>`;
+}
+
+/* ---------- Dialoge (ohne natives confirm/prompt – die funktionieren in installierten PWAs nicht zuverlässig) ---------- */
+function askModal(html, setup) {
+  return new Promise(res => {
+    const m = document.createElement('div'); m.className = 'modal';
+    m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true">${html}</div>`;
+    let closed = false;
+    const done = v => { if (closed) return; closed = true; m.remove(); res(v); };
+    m._done = done;
+    m.addEventListener('mousedown', e => { if (e.target === m) done(null); });
+    document.body.appendChild(m);
+    $$('[data-close]', m).forEach(b => b.addEventListener('click', () => done(null)));
+    if (setup) setup(m, done);
+  });
+}
+function promptModal({ title, label = '', value = '', placeholder = '', ok = 'Speichern' }) {
+  return askModal(`<h3>${esc(title)}</h3><form>${label ? `<label class="lbl">${esc(label)}</label>` : ''}
+    <input class="inp" name="v" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off">
+    <div class="mact"><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">${esc(ok)}</button></div></form>`,
+  (m, done) => {
+    const inp = $('input', m); setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    $('form', m).onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (!v) { inp.focus(); return; } done(v); };
+  });
+}
+async function confirmModal({ title, text = '', ok = 'Löschen', danger = true }) {
+  const r = await askModal(`<h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ''}
+    <div class="mact"><button class="btn ghost" data-close>Abbrechen</button><button class="btn ${danger ? 'danger' : 'primary'}" data-ok>${esc(ok)}</button></div>`,
+  (m, done) => { $('[data-ok]', m).onclick = () => done(true); });
+  return r === true;
+}
+function menuModal(items) {
+  return askModal(`<div class="menu">${items.map((it, i) => `<button data-i="${i}" class="${it.danger ? 'danger' : ''}">${ic(it.icon || 'edit')}${esc(it.label)}</button>`).join('')}</div>`,
+    (m, done) => { $$('[data-i]', m).forEach(b => b.onclick = () => { done(null); items[+b.dataset.i].fn(); }); });
+}
+function fieldModal({ title, name = '', color = COLORS[0], ok = 'Speichern', placeholder = 'z. B. Lernfeld 3 – Kundenberatung' }) {
+  return askModal(`<h3>${esc(title)}</h3><form><label class="lbl">Name</label>
+    <input class="inp" name="v" value="${esc(name)}" placeholder="${esc(placeholder)}" autocomplete="off">
+    <label class="lbl">Farbe</label><div class="colors">${COLORS.map(c => `<button type="button" data-c="${c}" style="background:${c}" class="${c === color ? 'on' : ''}" aria-label="Farbe"></button>`).join('')}</div>
+    <div class="mact"><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">${esc(ok)}</button></div></form>`,
+  (m, done) => {
+    let col = color; const inp = $('input', m); setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    $$('[data-c]', m).forEach(b => b.onclick = () => { col = b.dataset.c; $$('[data-c]', m).forEach(x => x.classList.toggle('on', x === b)); });
+    $('form', m).onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (!v) { inp.focus(); return; } done({ name: v, color: col }); };
+  });
+}
+function newDocModal() {
+  return askModal(`<h3>Neue Unterlage</h3><form><label class="lbl">Titel</label>
+    <input class="inp" name="v" placeholder="z. B. Mitschrift Angebot & Nachfrage" autocomplete="off">
+    <label class="lbl">Art</label><div class="seg">${Object.entries(KINDS).map(([k, v]) => `<button type="button" data-k="${k}" class="${k === 'digital' ? 'on' : ''}">${ic(v.icon)} ${v.label}</button>`).join('')}</div>
+    <p class="hint" id="khint">${KINDS.digital.hint}</p>
+    <div class="mact"><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Anlegen</button></div></form>`,
+  (m, done) => {
+    let kind = 'digital'; const inp = $('input', m); setTimeout(() => inp.focus(), 30);
+    $$('[data-k]', m).forEach(b => b.onclick = () => { kind = b.dataset.k; $$('[data-k]', m).forEach(x => x.classList.toggle('on', x === b)); $('#khint', m).textContent = KINDS[kind].hint; });
+    $('form', m).onsubmit = e => { e.preventDefault(); done({ title: inp.value.trim() || 'Ohne Titel', kind }); };
+  });
+}
+
+/* ---------- Optionen ---------- */
+function fieldOptions(sel, withNone = false, space = UI.space) {
+  let o = withNone ? `<option value="">– kein${space === 'alltag' ? 'e Kategorie' : ' Lernfeld'} –</option>` : '';
+  if (space === 'alltag') return o + altagFields().map(f => `<option value="${f.id}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('');
+  for (const y of live('years').sort((a, b) => b.createdAt - a.createdAt)) {
+    const fs = fieldsOfYear(y.id); if (!fs.length) continue;
+    o += `<optgroup label="${esc(y.name)}">${fs.map(f => `<option value="${f.id}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</optgroup>`;
+  }
+  return o;
+}
+const docOptions = (fid, sel) => `<option value="">– keine Unterlage –</option>` +
+  docsOfField(fid).sort((a, b) => cmp(a.title, b.title)).map(d => `<option value="${d.id}" ${d.id === sel ? 'selected' : ''}>${esc(d.title || 'Ohne Titel')}</option>`).join('');
+const sortTodos = a => a.slice().sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999') || (y.prio ?? 1) - (x.prio ?? 1) || x.createdAt - y.createdAt);
+function docHay(d) {
+  const atts = live('atts').filter(a => a.docId === d.id).map(a => a.name + ' ' + (a.caption || '')).join(' ');
+  return [d.title, (d.tags || []).join(' '), d.note, d.place, atts].join(' ').toLowerCase();
+}
+
+/* ---------- Bausteine ---------- */
+function docRow(d, showField = true, extraBadge = '') {
+  const f = byId('fields', d.fieldId), nf = attsOf(d.id, 'file').length, np = attsOf(d.id, 'photo').length;
+  const sub = [fmtDate(d.date), showField && f ? f.name : '', (d.tags || []).map(t => '#' + t).join(' ')].filter(Boolean).join(' · ');
+  return `<a class="row" href="#/d/${d.id}"><span class="ico k-${d.kind}">${ic(KINDS[d.kind]?.icon || 'file')}</span>
+    <span class="grow"><b>${esc(d.title || 'Ohne Titel')}</b><small>${esc(sub) || '&nbsp;'}</small></span>
+    <span class="badges">${extraBadge}${nf ? `<i>${ic('clip')}${nf}</i>` : ''}${np ? `<i>${ic('image')}${np}</i>` : ''}${d.note ? `<i>${ic('note')}</i>` : ''}</span></a>`;
+}
+function todoRow(t, opt = {}) {
+  const f = byId('fields', t.fieldId), d = byId('docs', t.docId), subs = t.subs || [], sd = subs.filter(s => s.d).length;
+  let due = '', soon = false;
+  if (t.due) {
+    const dd = daysBetween(today(), t.due);
+    due = `<span class="tag ${!t.done && dd < 0 ? 'due-over' : !t.done && dd === 0 ? 'due-today' : ''}">${ic('cal')}${esc(fmtDue(t.due))}</span>`;
+    soon = !t.done && t.remind != null && dd >= 0 && dd <= t.remind;
+  }
+  return `<div class="todo p${t.prio ?? 1} ${t.done ? 'done' : ''}">
+    <button class="chk" data-a="todo-toggle" data-id="${t.id}" aria-label="Erledigt umschalten">${t.done ? ic('check') : ''}</button>
+    <div class="tbody" data-a="todo-edit" data-id="${t.id}"><div class="ttl">${esc(t.title)}</div>
+      <div class="tmeta">${opt.tag || ''}${f && !opt.noField ? `<span class="tag fld" style="background:${f.color || COLORS[0]}">${esc(f.name)}</span>` : ''}${due}
+      ${t.prio === 2 ? `<span class="tag p2">${ic('flag')}Wichtig</span>` : ''}${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}${subs.length ? `<span class="tag">${ic('list')}${sd}/${subs.length}</span>` : ''}
+      ${d && !opt.noDoc ? `<span class="tag">${ic('file')}${esc(d.title || 'Unterlage')}</span>` : ''}</div></div></div>`;
+}
+function quickForm(ctx) {
+  const sp = ctx.space || (ctx.fieldId ? spaceOfField(byId('fields', ctx.fieldId)) : UI.space);
+  return `<form class="quick" data-a-submit="todo-quick" data-f="${ctx.fieldId || ''}" data-d="${ctx.docId || ''}" data-sp="${sp}">
+    <input class="inp" name="t" placeholder="${sp === 'alltag' ? 'Neue Aufgabe / Erledigung …' : 'Neue Aufgabe / Hausaufgabe …'}" autocomplete="off" aria-label="Neue Aufgabe">
+    <input class="inp" type="date" name="due" aria-label="Fällig am"><button class="btn primary" aria-label="Aufgabe hinzufügen">${ic('plus')}</button></form>`;
+}
+function todoSection(ctx, todos, opt = {}) {
+  const open = sortTodos(todos.filter(t => !t.done)), done = todos.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  return quickForm(ctx) + ((open.length || done.length)
+    ? `<div class="card">${open.map(t => todoRow(t, opt)).join('')}${done.map(t => todoRow(t, opt)).join('')}</div>`
+    : `<p class="hint">Noch keine Aufgaben. Trage oben eine Hausaufgabe ein.</p>`);
+}
+const noteBox = (bind, val, ph) => `<textarea class="inp autogrow" data-bind="${bind}" placeholder="${esc(ph)}">\n${esc(val || '')}</textarea>`;
+
+/* ---------- Router ---------- */
+function render(nav = false) {
+  const [a, id] = (location.hash.slice(1) || '/').split('/').filter(Boolean);
+  let v;
+  try {
+    v = !a ? vHome() : a === 'y' ? vYear(id) : a === 'f' ? vField(id) : a === 'd' ? vDoc(id) : a === 'todo' ? vTodos() : a === 'cal' ? vCal() : a === 'search' ? vSearch() : a === 'settings' ? vSettings() : vHome();
+  } catch (e) { console.error(e); v = { title: 'Fehler', body: `<div class="card empty"><p>${esc(e.message)}</p></div>` }; }
+  if (!v) { location.replace('#/'); return; }
+  $('#top').innerHTML = `${v.back ? `<button class="icon-btn" data-a="nav" data-to="${v.back}" aria-label="Zurück">${ic('back')}</button>` : ''}
+    <h1>${esc(v.title)}</h1><div class="tbtns"><span id="saved">Gespeichert</span>${v.actions || ''}<button class="icon-btn sync" data-a="sync" id="syncbtn" aria-label="Synchronisieren"></button></div>`;
+  $('#view').innerHTML = v.body;
+  renderNav(a); updateSyncUI(); afterRender();
+  if (nav) window.scrollTo(0, 0);
+}
+function renderNav(a) {
+  const t0 = today(), over = todosOpen().filter(t => t.due && t.due <= t0).length, soon = examSoonCount() + eventSoonCount();
+  const items = [['/', 'folder', 'Unterlagen', ['', 'y', 'f', 'd']], ['/todo', 'check', 'Aufgaben', ['todo']], ['/cal', 'cal', 'Kalender', ['cal']], ['/search', 'search', 'Suche', ['search']], ['/settings', 'sliders', 'Einstellungen', ['settings']]];
+  $('#nav').innerHTML = `<div class="brand"><span>${ic('folder')}</span>LifeVault</div>` + items.map(([h, i, l, keys]) =>
+    `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/todo' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
+}
+function autoGrow(el) { const min = el.dataset.min !== undefined ? +el.dataset.min : 96; el.style.height = 'auto'; el.style.height = Math.max(min, el.scrollHeight + 2) + 'px'; }
+function afterRender() {
+  $$('textarea.autogrow').forEach(autoGrow);
+  $$('#view img[data-thumb]').forEach(async img => {
+    const a = byId('atts', img.dataset.thumb); if (!a) return;
+    const u = await thumbURL(a); if (u) img.src = u;
+  });
+  const si = $('#storinfo');
+  if (si) { if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => { si.textContent = fmtSize(e.usage || 0); }).catch(() => { si.textContent = '–'; }); else si.textContent = '–'; }
+  const qi = $('#qinp'); if (qi && !UI.q) qi.focus();
+}
+function rerenderSoon() {
+  const ae = document.activeElement;
+  if (ae && $('#view').contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) { UI.rerender = true; return; }
+  render();
+}
+function updateSyncUI() {
+  const b = $('#syncbtn'), on = configured();
+  if (b) {
+    const st = !on ? 'off' : SYNC.state;
+    b.className = 'icon-btn sync ' + (st === 'syncing' ? 'spin' : st === 'err' ? 'err' : st === 'ok' ? 'ok' : 'off');
+    b.innerHTML = ic(st === 'err' ? 'cloudoff' : st === 'syncing' ? 'refresh' : 'cloud');
+    b.title = !on ? 'Sync einrichten' : st === 'syncing' ? (SYNC.progress || 'Synchronisiere …') : st === 'err' ? SYNC.msg : 'Jetzt synchronisieren';
+  }
+  const s = $('#syncstat'); if (s) s.innerHTML = syncPill();
+  const ns = $('#notifstat'); if (ns) ns.innerHTML = notifPill();
+  const nav = location.hash.slice(1).split('/').filter(Boolean)[0];
+  if ($('#nav')) renderNav(nav);
+}
+
+/* ---------- Ansicht: Start ---------- */
+function vHome() { return UI.space === 'alltag' ? vHomeAlltag() : vHomeSchule(); }
+function vHomeSchule() {
+  const years = live('years').sort((a, b) => b.createdAt - a.createdAt);
+  const open = sortTodos(todosOfSpace('schule').filter(t => !t.done)).slice(0, 4);
+  const recent = docsOfSpace('schule').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
+  const nextExams = upcomingExams(4);
+  let h = spaceSwitcher();
+  if (open.length) h += `<section><div class="sec-h"><h2>Als Nächstes</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${open.map(t => todoRow(t)).join('')}</div></section>`;
+  if (nextExams.length) h += `<section><div class="sec-h"><h2>Anstehende Arbeiten</h2><a href="#/cal">Kalender</a></div><div class="card">${nextExams.map(examRow).join('')}</div></section>`;
+  h += `<section><div class="sec-h"><h2>Schuljahre</h2><button class="btn small" data-a="year-new">${ic('plus')} Schuljahr</button></div>`;
+  if (!years.length) h += `<div class="card empty">${ic('book')}<p>Willkommen bei LifeVault! Lege zuerst dein Schuljahr an. Darin sammelst du Lernfelder, Unterlagen, Notizen und Fotos.</p><button class="btn primary" data-a="year-new">${ic('plus')} Schuljahr anlegen</button></div>`;
+  else h += `<div class="grid">${years.map(y => {
+    const fs = fieldsOfYear(y.id), nd = fs.reduce((n, f) => n + docsOfField(f.id).length, 0);
+    return `<a class="card ycard" href="#/y/${y.id}"><b>${esc(y.name)}</b><small>${fs.length} Lernfelder · ${nd} Unterlagen</small></a>`;
+  }).join('')}</div>`;
+  h += '</section>';
+  if (recent.length) h += `<section><div class="sec-h"><h2>Zuletzt bearbeitet</h2></div><div class="card">${recent.map(d => docRow(d)).join('')}</div></section>`;
+  return { title: 'Schule', body: h };
+}
+function vHomeAlltag() {
+  const fs = altagFields();
+  const open = sortTodos(todosOfSpace('alltag').filter(t => !t.done)).slice(0, 4);
+  const recent = docsOfSpace('alltag').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
+  const nextEvents = upcomingEvents(4);
+  let h = spaceSwitcher();
+  if (open.length) h += `<section><div class="sec-h"><h2>Als Nächstes</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${open.map(t => todoRow(t)).join('')}</div></section>`;
+  if (nextEvents.length) h += `<section><div class="sec-h"><h2>Anstehende Termine</h2><a href="#/cal">Kalender</a></div><div class="card">${nextEvents.map(e => eventRow(e)).join('')}</div></section>`;
+  h += `<section><div class="sec-h"><h2>Kategorien</h2><button class="btn small" data-a="field-new">${ic('plus')} Kategorie</button></div>`;
+  if (!fs.length) h += `<div class="card empty">${ic('home')}<p>Willkommen im Alltag-Bereich von LifeVault! Lege deine erste Kategorie an, z. B. Haushalt, Finanzen, Auto oder Gesundheit.</p><button class="btn primary" data-a="field-new">${ic('plus')} Kategorie anlegen</button></div>`;
+  else h += `<div class="grid">${fs.map(f => {
+    const nd = docsOfField(f.id).length, nt = todosOfSpace('alltag').filter(t => !t.done && t.fieldId === f.id).length;
+    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}"><b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
+  }).join('')}</div>`;
+  h += '</section>';
+  if (recent.length) h += `<section><div class="sec-h"><h2>Zuletzt bearbeitet</h2></div><div class="card">${recent.map(d => docRow(d)).join('')}</div></section>`;
+  return { title: 'Alltag', body: h };
+}
+
+/* ---------- Ansicht: Schuljahr ---------- */
+function vYear(id) {
+  const y = byId('years', id); if (!y) return null;
+  const fs = fieldsOfYear(id);
+  let h = `<div class="sec-h"><h2>Lernfelder</h2><button class="btn small" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld</button></div>`;
+  h += fs.length ? `<div class="grid">${fs.map(f => {
+    const nd = docsOfField(f.id).length, nt = todosOpen().filter(t => t.fieldId === f.id).length;
+    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}"><b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
+  }).join('')}</div>`
+    : `<div class="card empty">${ic('folder')}<p>Noch keine Lernfelder. Lege z. B. „Lernfeld 1“ oder ein Fach an.</p><button class="btn primary" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld anlegen</button></div>`;
+  h += `<section style="margin-top:24px"><div class="sec-h"><h2>Notizen zum Schuljahr</h2></div>${noteBox(`years.${id}.note`, y.note, 'Allgemeine Notizen, Termine, Lehrer, Prüfungsplan …')}</section>`;
+  return { title: y.name, back: '/', actions: `<button class="icon-btn" data-a="year-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+}
+
+/* ---------- Ansicht: Lernfeld ---------- */
+function vField(id) {
+  const f = byId('fields', id); if (!f) return null;
+  if (UI.fid !== id) { UI.fid = id; UI.ftab = 'docs'; UI.dkind = 'all'; UI.dq = ''; }
+  const sp = spaceOfField(f);
+  const y = yearOfField(f), docs = docsOfField(id), todos = live('todos').filter(t => t.fieldId === id);
+  const nOpen = todos.filter(t => !t.done).length;
+  let h = `<div class="crumb"><a href="#/">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}</div>`;
+  h += `<div class="tabs">
+    <button data-a="ftab" data-v="docs" class="${UI.ftab === 'docs' ? 'on' : ''}">${ic('file')} Unterlagen <span class="n">${docs.length}</span></button>
+    <button data-a="ftab" data-v="notes" class="${UI.ftab === 'notes' ? 'on' : ''}">${ic('note')} Notizen</button>
+    <button data-a="ftab" data-v="todos" class="${UI.ftab === 'todos' ? 'on' : ''}">${ic('check')} Aufgaben ${nOpen ? `<span class="n">${nOpen}</span>` : ''}</button></div>`;
+  if (UI.ftab === 'docs') {
+    const nk = k => docs.filter(d => d.kind === k).length;
+    h += `<div class="filters"><input class="inp" data-a-input="dq" value="${esc(UI.dq)}" placeholder="In diesem Lernfeld suchen …" aria-label="Suchen">
+      <select class="inp" data-a-change="dsort" aria-label="Sortierung"><option value="date" ${UI.dsort === 'date' ? 'selected' : ''}>Nach Datum</option><option value="edited" ${UI.dsort === 'edited' ? 'selected' : ''}>Zuletzt bearbeitet</option><option value="name" ${UI.dsort === 'name' ? 'selected' : ''}>Nach Name</option></select></div>
+      <div class="chips" style="margin-bottom:12px">${[['all', 'Alle', docs.length], ...Object.entries(KINDS).map(([k, v]) => [k, v.label, nk(k)])].map(([k, l, n]) =>
+        `<button class="chip btnlike ${UI.dkind === k ? 'on' : ''}" data-a="dkind" data-v="${k}">${l} · ${n}</button>`).join('')}</div>
+      <div id="dlist">${docListHTML(docs)}</div>
+      <button class="fab" data-a="doc-new" data-f="${id}">${ic('plus')} Unterlage</button>`;
+  } else if (UI.ftab === 'notes') {
+    h += `<p class="hint" style="margin:0 2px 8px">Gesamtnotizen zu „${esc(f.name)}“ – für alles, was nicht zu einer einzelnen Unterlage gehört.</p>${noteBox(`fields.${id}.note`, f.note, 'Zusammenfassung, Prüfungsthemen, offene Fragen …')}`;
+  } else {
+    h += todoSection({ fieldId: id }, todos, { noField: true });
+  }
+  return { title: f.name, back: y ? `/y/${y.id}` : '/', actions: `<button class="icon-btn" data-a="field-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+}
+function docListHTML(docs) {
+  let list = docs.filter(d => UI.dkind === 'all' || d.kind === UI.dkind);
+  const q = UI.dq.trim().toLowerCase();
+  if (q) list = list.filter(d => docHay(d).includes(q));
+  list.sort(UI.dsort === 'name' ? (a, b) => cmp(a.title, b.title)
+    : UI.dsort === 'edited' ? (a, b) => b.updatedAt - a.updatedAt
+      : (a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  if (!list.length) return `<div class="card empty">${ic('file')}<p>${docs.length ? 'Nichts gefunden.' : 'Noch keine Unterlagen in diesem Lernfeld. Lege mit „+ Unterlage“ die erste an.'}</p></div>`;
+  return `<div class="card">${list.map(d => docRow(d, false)).join('')}</div>`;
+}
+
+/* ---------- Ansicht: Unterlage ---------- */
+function tagBox(d) {
+  const all = [...new Set(live('docs').flatMap(x => x.tags || []))].sort(cmp);
+  return `<div class="tagbox">${(d.tags || []).map(t => `<span class="chip">#${esc(t)}<span class="x" data-a="tag-del" data-id="${d.id}" data-t="${esc(t)}">${ic('x')}</span></span>`).join('')}
+    <input list="tagsdl" data-a-key="tag" data-id="${d.id}" placeholder="Tag hinzufügen …" aria-label="Tag hinzufügen" autocomplete="off"></div>
+    <datalist id="tagsdl">${all.map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+}
+function fileRow(a) {
+  const local = HAVE.has(a.id), img = /^image\//.test(a.mime || '');
+  const icon = /pdf/.test(a.mime) ? 'file' : img ? 'image' : 'file';
+  return `<div class="row" data-a="file-open" data-id="${a.id}"><span class="ico">${ic(icon)}</span>
+    <span class="grow"><b>${esc(a.name)}</b><small>${fmtSize(a.size || 0)}${local ? '' : ' · in der Cloud (Tippen zum Laden)'}</small></span>
+    <button class="icon-btn" data-a="file-menu" data-id="${a.id}" aria-label="Mehr">${ic('more')}</button></div>`;
+}
+function vDoc(id) {
+  const d = byId('docs', id); if (!d) return null;
+  const f = byId('fields', d.fieldId), y = yearOfField(f), sp = spaceOfField(f);
+  const files = attsOf(id, 'file'), photos = attsOf(id, 'photo'), kind = KINDS[d.kind] ? d.kind : 'digital';
+  let h = `<div class="crumb"><a href="#/">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}${f ? ` › <a href="#/f/${f.id}">${esc(f.name)}</a>` : ''}</div>`;
+  h += `<div class="card pad"><textarea class="titleinp autogrow" data-min="0" rows="1" enterkeyhint="done" data-bind="docs.${id}.title" placeholder="Titel der Unterlage" aria-label="Titel">\n${esc(d.title)}</textarea>
+    <label class="lbl">Art</label><div class="seg">${Object.entries(KINDS).map(([k, v]) => `<button data-a="doc-kind" data-id="${id}" data-v="${k}" class="${k === kind ? 'on' : ''}">${ic(v.icon)} ${v.label}</button>`).join('')}</div>
+    <p class="hint">${KINDS[kind].hint}</p>
+    <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" data-bind="docs.${id}.date" value="${esc(d.date || '')}"></div>
+    <div><label class="lbl">${FWORD[sp]}</label><select class="inp" data-a-change="doc-move" data-id="${id}">${fieldOptions(d.fieldId, false, sp)}</select></div></div>
+    ${kind !== 'digital' ? `<label class="lbl">Ablageort (Papier)</label><input class="inp" data-bind="docs.${id}.place" value="${esc(d.place || '')}" placeholder="z. B. Ordner Wirtschaft, Register 3">` : ''}
+    <label class="lbl">Tags</label><div id="tagwrap">${tagBox(d)}</div></div>`;
+
+  if (kind !== 'paper' || files.length) {
+    h += `<section style="margin-top:22px"><div class="sec-h"><h2>Dateien <small>${files.length || ''}</small></h2><button class="btn small" data-a="file-add" data-id="${id}">${ic('plus')} Datei</button></div>
+      ${files.length ? `<div class="card">${files.map(fileRow).join('')}</div>` : `<div class="card empty" style="padding:20px">${ic('file')}<p style="margin:4px auto 10px">PDF, Word, Bilder … einfach hinzufügen.</p></div>`}
+      ${kind === 'digital' && !photos.length ? `<div class="actions"><button class="btn small ghost" data-a="photo-gal" data-id="${id}">${ic('image')} Foto/Scan anheften</button></div>` : ''}</section>`;
+  }
+  if (kind !== 'digital' || photos.length) {
+    h += `<section style="margin-top:22px"><div class="sec-h"><h2>Fotos &amp; Seiten <small>${photos.length || ''}</small></h2></div><div class="card pad">
+      <div class="photos">${photos.map((a, i) => `<button class="ph ${HAVE.has(a.id) ? '' : 'cloud'}" data-a="lb-open" data-id="${a.id}" aria-label="Seite ${i + 1}"><img data-thumb="${a.id}" alt="">
+        <span class="pn">${i + 1}</span><span class="cl">${ic('cloud')}Cloud</span>${a.caption ? `<span class="cap">${esc(a.caption)}</span>` : ''}</button>`).join('')}
+        <button class="ph add" data-a="photo-cam" data-id="${id}">${ic('camera')}Foto</button></div>
+      <div class="actions"><button class="btn primary" data-a="photo-cam" data-id="${id}">${ic('camera')} Foto aufnehmen</button>
+        <button class="btn" data-a="photo-gal" data-id="${id}">${ic('image')} Aus Galerie</button>
+        ${kind === 'paper' && !files.length ? `<button class="btn ghost" data-a="file-add" data-id="${id}">${ic('clip')} Datei anhängen</button>` : ''}</div>
+      <p class="hint">Jedes Foto ist eine Seite. Tippe ein Foto an, um es zu vergrößern, zu drehen, zu beschriften oder die Reihenfolge zu ändern.</p></div></section>`;
+  }
+  h += `<section style="margin-top:22px"><div class="sec-h"><h2>Notizen</h2></div>${noteBox(`docs.${id}.note`, d.note, 'Deine Notizen zu dieser Unterlage …')}</section>`;
+  h += `<section><div class="sec-h"><h2>Aufgaben dazu</h2></div>${todoSection({ fieldId: d.fieldId, docId: id }, live('todos').filter(t => t.docId === id), { noField: true, noDoc: true })}</section>`;
+  return { title: d.title || 'Ohne Titel', back: f ? `/f/${f.id}` : '/', actions: `<button class="icon-btn" data-a="doc-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+}
+/* =====================================================================
+   Oberfläche Teil 2: Aufgaben, Suche, Einstellungen, Foto-Viewer, Aktionen, Start
+   ===================================================================== */
+
+/* ---------- Ansicht: Aufgaben ---------- */
+function vTodos() {
+  let all = todosOfSpace(UI.space); if (UI.tfield) all = all.filter(t => t.fieldId === UI.tfield);
+  const open = all.filter(t => !t.done), done = all.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  let h = spaceSwitcher();
+  h += quickForm({ fieldId: UI.tfield, space: UI.space });
+  h += `<div class="filters"><div class="chips" style="flex:1">
+      <button class="chip btnlike ${UI.tfilter === 'open' ? 'on' : ''}" data-a="tfilter" data-v="open">Offen · ${open.length}</button>
+      <button class="chip btnlike ${UI.tfilter === 'done' ? 'on' : ''}" data-a="tfilter" data-v="done">Erledigt · ${done.length}</button></div>
+    <select class="inp" data-a-change="tfield" aria-label="Nach ${FWORD[UI.space]} filtern"><option value="">Alle ${UI.space === 'alltag' ? 'Kategorien' : 'Lernfelder'}</option>${fieldOptions(UI.tfield, false, UI.space)}</select></div>`;
+  if (UI.tfilter === 'open') {
+    if (!open.length) h += `<div class="card empty">${ic('check')}<p>Nichts offen. Trage oben eine Hausaufgabe oder Lernaufgabe ein.</p></div>`;
+    const t0 = today(), g = { over: [], today: [], week: [], later: [], none: [] };
+    for (const t of sortTodos(open)) {
+      if (!t.due) g.none.push(t);
+      else { const d = daysBetween(t0, t.due); (d < 0 ? g.over : d === 0 ? g.today : d <= 7 ? g.week : g.later).push(t); }
+    }
+    [['over', 'Überfällig', 'over'], ['today', 'Heute', ''], ['week', 'Nächste 7 Tage', ''], ['later', 'Später', ''], ['none', 'Ohne Datum', '']].forEach(([k, l, c]) => {
+      if (g[k].length) h += `<div class="grp ${c}">${l} · ${g[k].length}</div><div class="card">${g[k].map(t => todoRow(t)).join('')}</div>`;
+    });
+  } else {
+    h += done.length ? `<div class="card">${done.map(t => todoRow(t)).join('')}</div><div class="actions"><button class="btn danger small" data-a="todo-clear">${ic('trash')} Erledigte löschen</button></div>`
+      : `<div class="card empty">${ic('check')}<p>Noch nichts erledigt.</p></div>`;
+  }
+  return { title: 'Aufgaben', body: h };
+}
+function todoModal(id) {
+  const t = byId('todos', id); if (!t) return;
+  const sp = todoSpace(t);
+  return askModal(`<h3>Aufgabe</h3><form>
+    <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(t.title)}" autocomplete="off">
+    <div class="two"><div><label class="lbl">Fällig am</label><input type="date" class="inp" name="due" value="${esc(t.due || '')}"></div>
+    <div><label class="lbl">Wichtigkeit</label><select class="inp" name="prio"><option value="0">Niedrig</option><option value="1">Normal</option><option value="2">Hoch</option></select></div></div>
+    <div class="two"><div><label class="lbl">${FWORD[sp]}</label><select class="inp" name="field">${fieldOptions(t.fieldId, true, sp)}</select></div>
+    <div><label class="lbl">Unterlage</label><select class="inp" name="doc">${docOptions(t.fieldId, t.docId)}</select></div></div>
+    <label class="lbl">Teilaufgaben</label><div id="subs"></div>
+    <div class="subrow"><input class="inp" id="newsub" placeholder="Teilaufgabe hinzufügen …" autocomplete="off"><button type="button" class="btn small" id="addsub" aria-label="Hinzufügen">${ic('plus')}</button></div>
+    <label class="lbl">Erinnerung</label>${remindFields(t)}
+    <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(t.note || '')}</textarea>
+    <div class="mact"><button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    const F = $('form', m); F.prio.value = String(t.prio ?? 1);
+    const subs = $('#subs', m);
+    const addSub = (txt, d = false) => {
+      const r = document.createElement('div'); r.className = 'subrow';
+      r.innerHTML = `<input type="checkbox" ${d ? 'checked' : ''} aria-label="Erledigt"><input class="inp" value="${esc(txt)}" aria-label="Teilaufgabe"><button type="button" class="icon-btn" aria-label="Entfernen">${ic('x')}</button>`;
+      $('button', r).onclick = () => r.remove(); subs.appendChild(r);
+    };
+    (t.subs || []).forEach(s => addSub(s.t, s.d));
+    const push = () => { const i = $('#newsub', m); if (i.value.trim()) { addSub(i.value.trim()); i.value = ''; } i.focus(); };
+    $('#addsub', m).onclick = push;
+    $('#newsub', m).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); push(); } });
+    F.field.onchange = () => { F.doc.innerHTML = docOptions(F.field.value, null); };
+    $('[data-del]', m).onclick = () => {
+      done(null); del('todos', t); render();
+      toast('Aufgabe gelöscht', '', { label: 'Rückgängig', fn: () => { t.deleted = false; touch('todos', t); render(); } });
+    };
+    F.onsubmit = e => {
+      e.preventDefault();
+      const title = F.title.value.trim(); if (!title) { F.title.focus(); return; }
+      const pend = $('#newsub', m).value.trim();
+      t.title = title; t.due = F.due.value; t.prio = +F.prio.value; t.note = F.note.value;
+      t.fieldId = F.field.value || null; t.space = sp;
+      const dd = F.doc.value ? byId('docs', F.doc.value) : null;
+      t.docId = dd && dd.fieldId === t.fieldId ? dd.id : null;
+      Object.assign(t, remindProps(F));
+      t.subs = $$('.subrow', subs).map((r, i) => ({ id: (t.subs && t.subs[i] && t.subs[i].id) || uid(), t: $('input.inp', r).value.trim(), d: $('input[type=checkbox]', r).checked })).filter(s => s.t);
+      if (pend) t.subs.push({ id: uid(), t: pend, d: false });
+      touch('todos', t); done(true); checkNotifications(); render();
+    };
+    setTimeout(() => F.title.focus(), 30);
+  });
+}
+
+/* ---------- Ansicht: Suche ---------- */
+function snippet(text, q) {
+  const i = (text || '').toLowerCase().indexOf(q); if (i < 0) return '';
+  const s = Math.max(0, i - 30), e = Math.min(text.length, i + q.length + 60);
+  return `<small class="snip">${s > 0 ? '…' : ''}${esc(text.slice(s, i))}<mark>${esc(text.slice(i, i + q.length))}</mark>${esc(text.slice(i + q.length, e))}${e < text.length ? '…' : ''}</small>`;
+}
+const spTag = sp => `<span class="tag space-${sp}">${SPACES[sp].label}</span>`;
+function searchHTML(raw) {
+  const q = raw.trim().toLowerCase();
+  if (q.length < 2) return `<p class="hint">Durchsucht Unterlagen (Titel, Notizen, Tags, Dateinamen, Beschriftungen), Lernfelder/Kategorien, Aufgaben, Arbeiten und Termine – in Schule und Alltag.</p>`;
+  let h = '';
+  const docs = live('docs').filter(d => docHay(d).includes(q)).sort((a, b) => b.updatedAt - a.updatedAt);
+  if (docs.length) h += `<div class="grp">Unterlagen · ${docs.length}</div><div class="card">${docs.map(d => {
+    const f = byId('fields', d.fieldId), sp = spaceOfField(f), sn = snippet(d.note, q) || snippet((d.tags || []).join(' #'), q) || snippet(d.place, q);
+    return `<a class="row" href="#/d/${d.id}"><span class="ico k-${d.kind}">${ic(KINDS[d.kind]?.icon || 'file')}</span><span class="grow"><b>${esc(d.title || 'Ohne Titel')}</b><small>${esc(f ? f.name : '')}</small>${sn}</span>${spTag(sp)}</a>`;
+  }).join('')}</div>`;
+  const fs = live('fields').filter(f => (f.name + ' ' + (f.note || '')).toLowerCase().includes(q));
+  const ys = live('years').filter(y => (y.name + ' ' + (y.note || '')).toLowerCase().includes(q));
+  if (fs.length || ys.length) h += `<div class="grp">Lernfelder, Kategorien &amp; Schuljahre</div><div class="card">${fs.map(f => `<a class="row" href="#/f/${f.id}"><span class="ico" style="background:${f.color};color:#fff">${ic('folder')}</span><span class="grow"><b>${esc(f.name)}</b>${snippet(f.note, q) || `<small>${esc(yearOfField(f)?.name || SPACES[spaceOfField(f)].label)}</small>`}</span></a>`).join('')}
+    ${ys.map(y => `<a class="row" href="#/y/${y.id}"><span class="ico">${ic('book')}</span><span class="grow"><b>${esc(y.name)}</b>${snippet(y.note, q)}</span></a>`).join('')}</div>`;
+  const ts = live('todos').filter(t => (t.title + ' ' + (t.note || '') + ' ' + (t.subs || []).map(s => s.t).join(' ')).toLowerCase().includes(q));
+  if (ts.length) h += `<div class="grp">Aufgaben · ${ts.length}</div><div class="card">${ts.map(t => todoRow(t, { tag: spTag(todoSpace(t)) })).join('')}</div>`;
+  const es = live('exams').filter(e => (e.title + ' ' + (e.note || '')).toLowerCase().includes(q));
+  if (es.length) h += `<div class="grp">Arbeiten · ${es.length}</div><div class="card">${es.map(examRow).join('')}</div>`;
+  const evs = live('events').filter(e => (e.title + ' ' + (e.note || '')).toLowerCase().includes(q));
+  if (evs.length) h += `<div class="grp">Termine · ${evs.length}</div><div class="card">${evs.map(e => eventRow(e)).join('')}</div>`;
+  return h || `<div class="card empty">${ic('search')}<p>Keine Treffer für „${esc(raw.trim())}“.</p></div>`;
+}
+const vSearch = () => ({ title: 'Suche', body: `<input class="inp" id="qinp" data-a-input="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suche" autocomplete="off"><div id="sres" style="margin-top:12px">${searchHTML(UI.q)}</div>` });
+
+/* ---------- Ansicht: Einstellungen ---------- */
+function syncPill() {
+  if (!configured()) return '<span class="pill off">Nicht eingerichtet</span>';
+  if (SYNC.state === 'syncing') return `<span class="pill off">${esc(SYNC.progress || 'Synchronisiere …')}</span>`;
+  if (SYNC.state === 'err') return `<span class="pill err">${esc(SYNC.msg)}</span>`;
+  return `<span class="pill ok">Verbunden</span>`;
+}
+function notifPill() {
+  if (!('Notification' in window)) return '<span class="pill off">Nicht unterstützt</span>';
+  if (Notification.permission === 'granted') return '<span class="pill ok">Aktiv</span>';
+  if (Notification.permission === 'denied') return '<span class="pill err">Blockiert</span>';
+  return '<span class="pill off">Nicht aktiviert</span>';
+}
+function vSettings() {
+  const c = cfg(), on = configured();
+  const cnt = k => live(k).length;
+  let h = `<section><div class="sec-h"><h2>Benachrichtigungen</h2><span id="notifstat">${notifPill()}</span></div><div class="card pad">
+    <p class="muted" style="margin:0 0 10px">Popup-Erinnerungen für Aufgaben, Arbeiten und Termine, die du pro Eintrag einzeln ein- und ausschalten kannst (im jeweiligen Bearbeiten-Dialog bei „Erinnerung“). Sie erscheinen, solange LifeVault in einem Tab geöffnet ist oder als installierte App im Hintergrund läuft. Ist die App komplett geschlossen, kommen sie nicht an – GitHub Pages hat keinen eigenen Server dafür.</p>
+    ${!('Notification' in window) ? `<p class="hint">Dein Browser unterstützt keine Web-Benachrichtigungen.</p>`
+      : Notification.permission === 'granted' ? `<p class="hint">Aktiviert – trag bei einer Aufgabe, Arbeit oder einem Termin eine Erinnerung ein, dann meldet sich LifeVault rechtzeitig.</p>`
+      : Notification.permission === 'denied' ? `<p class="hint">Im Browser blockiert. Erlaube Benachrichtigungen für diese Seite in den Website-Einstellungen deines Browsers, um sie wieder zu nutzen.</p>`
+      : `<button class="btn primary" data-a="notif-enable">${ic('bell')} Benachrichtigungen aktivieren</button>`}
+    </div></section>
+  <section><div class="sec-h"><h2>Synchronisation</h2><span id="syncstat">${syncPill()}</span></div><div class="card pad">
+    <p style="margin:0 0 4px" class="muted">Damit Handy und Laptop denselben Stand haben, legt LifeVault alles in einem <b>privaten</b> GitHub-Repository ab.
+    Die App arbeitet immer zuerst lokal und funktioniert dadurch auch offline; abgeglichen wird, sobald du online bist.</p>
+    <label class="lbl">Daten-Repository (benutzername/repo)</label><input class="inp" id="s-repo" value="${esc(c.repo || '')}" placeholder="dein-name/lifevault-daten" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label class="lbl">Zugriffstoken</label><input class="inp" id="s-token" type="password" value="" placeholder="${c.token ? '•••••••• (gespeichert – leer lassen zum Behalten)' : 'github_pat_…'}" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="s-auto" ${c.auto !== false ? 'checked' : ''} style="width:20px;height:20px"> Automatisch synchronisieren</label>
+    <div class="actions"><button class="btn primary" data-a="sync-save">${ic('check')} Speichern &amp; testen</button>
+      ${on ? `<button class="btn" data-a="sync-now">${ic('refresh')} Jetzt synchronisieren</button><button class="btn danger" data-a="sync-off">Trennen</button>` : ''}</div>
+    ${on ? `<div style="margin-top:12px"><div class="kv"><span>Letzter Abgleich</span><b>${fmtDateTime(lastSync())}</b></div><div class="kv"><span>Repository</span><b>${esc(c.repo)}</b></div></div>` : ''}
+    <details class="guide" ${on ? '' : 'open'}><summary>Einrichtung in 4 Schritten</summary><ol>
+      <li><b>Privates Repository anlegen:</b> Auf github.com oben rechts „+“ → „New repository“. Name z. B. <code>lifevault-daten</code>, Sichtbarkeit <b>Private</b>, Haken bei „Add a README file“ setzen. Das ist ein <i>anderes</i> Repo als das, in dem die App selbst liegt – die App-Seite ist öffentlich, deine Daten bleiben privat.</li>
+      <li><b>Token erstellen:</b> <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> öffnen. Name „LifeVault“, Ablauf z. B. 1 Jahr. Bei „Repository access“ → „Only select repositories“ → dein Daten-Repo. Unter „Permissions → Repository permissions“ bei <b>Contents</b> auf <b>Read and write</b> stellen. „Generate token“ und den Token kopieren (wird nur einmal angezeigt).</li>
+      <li><b>Hier eintragen:</b> Repository (<code>benutzername/lifevault-daten</code>) und Token einfügen, dann „Speichern &amp; testen“.</li>
+      <li><b>Zweites Gerät:</b> App dort öffnen, dieselben Angaben eintragen – alle Unterlagen, Notizen und Fotos werden geladen.</li></ol>
+      <p class="hint">Der Token wird nur in diesem Browser gespeichert, nicht in GitHub. Gib ihn nicht weiter. Wird derselbe Eintrag auf beiden Geräten gleichzeitig geändert, gilt die neuere Änderung. Dateien bis 8 MB werden automatisch geladen, größere beim Öffnen. Jede Datei darf bis ${Math.round(MAX_FILE / 1048576)} MB groß sein.</p></details></div></section>`;
+  h += `<section><div class="sec-h"><h2>Daten auf diesem Gerät</h2></div><div class="card pad">
+    <div class="kv"><span>Schuljahre / Lernfelder (Schule)</span><b>${cnt('years')} / ${live('fields').filter(f => f.yearId).length}</b></div>
+    <div class="kv"><span>Kategorien (Alltag)</span><b>${altagFields().length}</b></div>
+    <div class="kv"><span>Unterlagen</span><b>${cnt('docs')}</b></div>
+    <div class="kv"><span>Dateien / Fotos</span><b>${live('atts').filter(a => a.role === 'file').length} / ${live('atts').filter(a => a.role === 'photo').length}</b></div>
+    <div class="kv"><span>Aufgaben (offen)</span><b>${todosOpen().length}</b></div>
+    <div class="kv"><span>Arbeiten / Turnus-Wochen</span><b>${cnt('exams')} / ${live('turnusWeeks').length}</b></div>
+    <div class="kv"><span>Termine</span><b>${cnt('events')}</b></div>
+    <div class="kv"><span>Belegter Speicher</span><b id="storinfo">…</b></div>
+    <div class="actions"><button class="btn" data-a="export">${ic('download')} Sicherung (JSON)</button><button class="btn" data-a="import">${ic('plus')} Sicherung einlesen</button>
+      ${deferredInstall ? `<button class="btn primary" data-a="install">${ic('download')} App installieren</button>` : ''}
+      <button class="btn danger" data-a="wipe">${ic('trash')} Alles auf diesem Gerät löschen</button></div>
+    <p class="hint">Die Sicherung enthält Ordner, Notizen und Aufgaben, aber keine Dateien und Fotos – die liegen (bei aktivem Sync) im GitHub-Repo.</p></div></section>
+    <p class="muted" style="text-align:center;font-size:.85rem">LifeVault ${APP_VERSION}</p>`;
+  return { title: 'Einstellungen', body: h };
+}
+
+/* ---------- Foto-Viewer ---------- */
+const LB = { ids: [], i: 0, open: false, tok: 0 };
+function openLb(ids, i = 0) {
+  LB.ids = ids.slice(); LB.i = i; LB.open = true;
+  let el = $('#lb'); if (!el) { el = document.createElement('div'); el.id = 'lb'; document.body.appendChild(el); }
+  lbRender();
+}
+function lbClose() { const el = $('#lb'); if (el) el.remove(); if (LB.open) { LB.open = false; flushAll(); render(); } }
+async function lbRender() {
+  const a = byId('atts', LB.ids[LB.i]); if (!a) { lbClose(); return; }
+  const photo = a.role === 'photo', n = LB.ids.length;
+  $('#lb').innerHTML = `<div class="lb-top"><button class="icon-btn" data-a="lb-close" aria-label="Schließen">${ic('x')}</button>
+    <div class="lb-title">${photo ? `Seite ${LB.i + 1} / ${n}` : esc(a.name)}</div>
+    <button class="icon-btn" data-a="lb-dl" aria-label="Speichern">${ic('download')}</button><button class="icon-btn" data-a="lb-del" aria-label="Löschen">${ic('trash')}</button></div>
+    <div class="lb-stage" id="lbst"><div class="lb-msg">Wird geladen …</div></div>
+    ${n > 1 ? `<button class="lb-nav prev" data-a="lb-prev" aria-label="Vorherige">${ic('chevl')}</button><button class="lb-nav next" data-a="lb-next" aria-label="Nächste">${ic('chevr')}</button>` : ''}
+    <div class="lb-bot">${photo ? `<input class="lb-cap" data-bind="atts.${a.id}.caption" value="${esc(a.caption || '')}" placeholder="Beschriftung, z. B. Tafelbild oder Seite 3" aria-label="Beschriftung">
+      <button class="icon-btn" data-a="lb-rotl" aria-label="Links drehen">${ic('rotL')}</button><button class="icon-btn" data-a="lb-rotr" aria-label="Rechts drehen">${ic('rotR')}</button>
+      <button class="icon-btn" data-a="lb-mvl" aria-label="Eine Seite nach vorn" ${LB.i === 0 ? 'disabled style="opacity:.3"' : ''}>${ic('left')}</button>
+      <button class="icon-btn" data-a="lb-mvr" aria-label="Eine Seite nach hinten" ${LB.i === n - 1 ? 'disabled style="opacity:.3"' : ''}>${ic('right')}</button>` : ''}</div>`;
+  const tok = ++LB.tok;
+  try {
+    await ensureBlob(a); const u = await fullURL(a);
+    if (tok !== LB.tok) return;
+    const st = $('#lbst'); if (!st) return;
+    st.innerHTML = u ? `<img src="${u}" alt="${esc(a.caption || a.name)}">` : `<div class="lb-msg">Datei nicht verfügbar</div>`;
+  } catch (e) { const st = $('#lbst'); if (st && tok === LB.tok) st.innerHTML = `<div class="lb-msg">${esc(e.message)}</div>`; }
+}
+async function lbMove(dir) {
+  const j = LB.i + dir; if (j < 0 || j >= LB.ids.length) return;
+  const a = byId('atts', LB.ids[LB.i]), b = byId('atts', LB.ids[j]); if (!a || !b) return;
+  const t = a.order; a.order = b.order; b.order = t; touch('atts', a); touch('atts', b);
+  [LB.ids[LB.i], LB.ids[j]] = [LB.ids[j], LB.ids[LB.i]]; LB.i = j; lbRender();
+}
+const lbStep = d => { if (LB.ids.length < 2) return; LB.i = (LB.i + d + LB.ids.length) % LB.ids.length; lbRender(); };
+
+/* ---------- Dateien ---------- */
+async function saveAttToDevice(a) {
+  try {
+    const b = await ensureBlob(a), url = URL.createObjectURL(b), l = document.createElement('a');
+    l.href = url; l.download = a.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function openFile(a) {
+  if (!a) return;
+  if (/^image\//.test(a.mime || '')) { openLb([a.id], 0); return; }
+  try {
+    toast('Wird geöffnet …');
+    const b = await ensureBlob(a), u = URL.createObjectURL(b);
+    if (!window.open(u, '_blank')) await saveAttToDevice(a);
+    setTimeout(() => URL.revokeObjectURL(u), 120000);
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function deleteAtt(a) {
+  if (await confirmModal({ title: `„${a.name}“ löschen?`, text: 'Die Datei wird auch auf synchronisierten Geräten entfernt.' })) {
+    del('atts', a);
+    if (LB.open) { LB.ids = LB.ids.filter(x => x !== a.id); if (!LB.ids.length) lbClose(); else { LB.i = Math.min(LB.i, LB.ids.length - 1); lbRender(); } } else render();
+  }
+}
+function afterAttach(id, n, kind) {
+  if (!n) return;
+  if (location.hash === '#/d/' + id) render();
+  const msg = kind === 'cam' ? 'Seite hinzugefügt' : kind === 'photo' ? (n === 1 ? 'Foto hinzugefügt' : `${n} Fotos hinzugefügt`) : (n === 1 ? 'Datei hinzugefügt' : `${n} Dateien hinzugefügt`);
+  toast(msg, '', kind === 'cam' ? { label: 'Nächste Seite', fn: () => { UI.attachDoc = id; $('#in-cam').click(); } } : null);
+}
+function refreshTagBox(id, focus) {
+  const d = byId('docs', id), w = $('#tagwrap'); if (!d || !w) return;
+  w.innerHTML = tagBox(d); if (focus) { const i = $('.tagbox input', w); if (i) i.focus(); }
+}
+function addTag(el, focus = true) {
+  const d = byId('docs', el.dataset.id), tag = el.value.trim().replace(/^#/, '').replace(/,/g, '').trim();
+  if (!d) return; el.value = '';
+  if (tag && !(d.tags || []).some(t => t.toLowerCase() === tag.toLowerCase())) { d.tags = [...(d.tags || []), tag]; touch('docs', d); showSaved(); refreshTagBox(d.id, focus); }
+  else if (focus) el.focus();
+}
+
+/* ---------- Aktionen ---------- */
+const go = p => { location.hash = '#' + p; };
+const ACT = {
+  nav: el => go(el.dataset.to),
+  sync: () => { if (!configured()) go('/settings'); else runSync(true); },
+  'year-new': async () => {
+    const v = await promptModal({ title: 'Neues Schuljahr', label: 'Name', value: defaultYearName(), ok: 'Anlegen' }); if (!v) return;
+    go('/y/' + add('years', { name: v, note: '' }).id);
+  },
+  'year-menu': el => {
+    const y = byId('years', el.dataset.id); if (!y) return;
+    menuModal([
+      { label: 'Umbenennen', icon: 'edit', fn: async () => { const v = await promptModal({ title: 'Schuljahr umbenennen', value: y.name }); if (v) { y.name = v; touch('years', y); render(); } } },
+      { label: 'Schuljahr löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${y.name}“ löschen?`, text: 'Alle Lernfelder, Unterlagen, Fotos und Notizen darin werden gelöscht.' })) { del('years', y); go('/'); } } }]);
+  },
+  'field-new': async el => {
+    const yid = el.dataset.y || null, sp = yid ? 'schule' : 'alltag';
+    const existing = yid ? fieldsOfYear(yid) : altagFields();
+    const r = await fieldModal({ title: sp === 'schule' ? 'Neues Lernfeld' : 'Neue Kategorie', color: COLORS[existing.length % COLORS.length], ok: 'Anlegen', placeholder: sp === 'schule' ? 'z. B. Lernfeld 3 – Kundenberatung' : 'z. B. Haushalt, Finanzen, Auto' }); if (!r) return;
+    go('/f/' + add('fields', { yearId: yid, name: r.name, color: r.color, note: '' }).id);
+  },
+  'field-menu': el => {
+    const f = byId('fields', el.dataset.id); if (!f) return;
+    const sp = spaceOfField(f), fw = FWORD[sp];
+    menuModal([
+      { label: 'Umbenennen / Farbe ändern', icon: 'edit', fn: async () => { const r = await fieldModal({ title: fw + ' bearbeiten', name: f.name, color: f.color, placeholder: sp === 'schule' ? 'z. B. Lernfeld 3 – Kundenberatung' : 'z. B. Haushalt, Finanzen, Auto' }); if (r) { f.name = r.name; f.color = r.color; touch('fields', f); render(); } } },
+      { label: fw + ' löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${f.name}“ löschen?`, text: `Alle Unterlagen, Fotos und Notizen in diesem ${fw} werden gelöscht. Aufgaben bleiben erhalten.` })) { const y = yearOfField(f); del('fields', f); go(y ? '/y/' + y.id : '/'); } } }]);
+  },
+  'space-switch': el => { setSpace(el.dataset.v); render(); },
+  ftab: el => { UI.ftab = el.dataset.v; render(); },
+  dkind: el => { UI.dkind = el.dataset.v; render(); },
+  'doc-new': async el => {
+    const r = await newDocModal(); if (!r) return;
+    go('/d/' + add('docs', { fieldId: el.dataset.f, title: r.title, kind: r.kind, date: today(), tags: [], note: '', place: '' }).id);
+  },
+  'doc-kind': el => { const d = byId('docs', el.dataset.id); if (d && d.kind !== el.dataset.v) { d.kind = el.dataset.v; touch('docs', d); render(); } },
+  'doc-menu': el => {
+    const d = byId('docs', el.dataset.id); if (!d) return;
+    menuModal([{ label: 'Unterlage löschen', icon: 'trash', danger: true, fn: async () => {
+      if (await confirmModal({ title: `„${d.title || 'Ohne Titel'}“ löschen?`, text: 'Dateien, Fotos und Notizen dazu werden ebenfalls gelöscht.' })) { const fid = d.fieldId; del('docs', d); go(fid ? '/f/' + fid : '/'); }
+    } }]);
+  },
+  'tag-del': el => { const d = byId('docs', el.dataset.id); if (!d) return; d.tags = (d.tags || []).filter(t => t !== el.dataset.t); touch('docs', d); refreshTagBox(d.id, false); },
+  'photo-cam': el => { UI.attachDoc = el.dataset.id; $('#in-cam').click(); },
+  'photo-gal': el => { UI.attachDoc = el.dataset.id; $('#in-gal').click(); },
+  'file-add': el => { UI.attachDoc = el.dataset.id; $('#in-file').click(); },
+  'file-open': el => openFile(byId('atts', el.dataset.id)),
+  'file-menu': el => {
+    const a = byId('atts', el.dataset.id); if (!a) return;
+    menuModal([
+      { label: 'Öffnen', icon: 'open', fn: () => openFile(a) },
+      { label: 'Umbenennen', icon: 'edit', fn: async () => { const v = await promptModal({ title: 'Datei umbenennen', value: a.name }); if (v) { a.name = v; touch('atts', a); render(); } } },
+      { label: 'Auf dem Gerät speichern', icon: 'download', fn: () => saveAttToDevice(a) },
+      { label: 'Löschen', icon: 'trash', danger: true, fn: () => deleteAtt(a) }]);
+  },
+  'lb-open': el => { const a = byId('atts', el.dataset.id); if (!a) return; const ids = attsOf(a.docId, 'photo').map(x => x.id); openLb(ids, Math.max(0, ids.indexOf(a.id))); },
+  'lb-close': lbClose,
+  'lb-prev': () => lbStep(-1), 'lb-next': () => lbStep(1),
+  'lb-mvl': () => lbMove(-1), 'lb-mvr': () => lbMove(1),
+  'lb-rotl': async () => { const a = byId('atts', LB.ids[LB.i]); if (a) { await rotateAtt(a, -90); lbRender(); } },
+  'lb-rotr': async () => { const a = byId('atts', LB.ids[LB.i]); if (a) { await rotateAtt(a, 90); lbRender(); } },
+  'lb-dl': () => { const a = byId('atts', LB.ids[LB.i]); if (a) saveAttToDevice(a); },
+  'lb-del': () => { const a = byId('atts', LB.ids[LB.i]); if (a) deleteAtt(a); },
+  tfilter: el => { UI.tfilter = el.dataset.v; render(); },
+  'todo-toggle': el => { const t = byId('todos', el.dataset.id); if (!t) return; t.done = !t.done; t.doneAt = t.done ? now() : null; touch('todos', t); render(); },
+  'todo-edit': el => todoModal(el.dataset.id),
+  'todo-clear': async () => {
+    const list = todosOfSpace(UI.space).filter(t => t.done && (!UI.tfield || t.fieldId === UI.tfield));
+    if (list.length && await confirmModal({ title: `${list.length} erledigte Aufgaben löschen?` })) { list.forEach(t => del('todos', t)); render(); }
+  },
+  'sync-save': async () => {
+    const repo = $('#s-repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    const old = cfg(), token = $('#s-token').value.trim() || old.token || '';
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { toast('Repository bitte als benutzername/repo eintragen', 'err'); return; }
+    if (!token) { toast('Bitte den Zugriffstoken eintragen', 'err'); return; }
+    const c = { ...old, repo, token, auto: $('#s-auto').checked };
+    try {
+      toast('Verbindung wird getestet …');
+      const info = await testConnection(c);
+      if (!info.canPush) { toast('Der Token darf nicht schreiben – „Contents: Read and write“ nötig', 'err'); return; }
+      if (!info.priv) toast('Achtung: Das Repository ist öffentlich! Deine Daten wären für alle sichtbar.', 'err');
+      c.branch = info.branch; saveCfg(c); setSync('idle', ''); render();
+      runSync(true);
+    } catch (e) { toast(friendlyErr(e), 'err'); }
+  },
+  'sync-now': () => runSync(true),
+  'sync-off': async () => {
+    if (await confirmModal({ title: 'Sync trennen?', text: 'Die Daten bleiben auf diesem Gerät und im GitHub-Repo erhalten. Der Token wird von diesem Gerät entfernt.', ok: 'Trennen', danger: false })) {
+      const c = cfg(); delete c.token; delete c.repo; saveCfg(c); setSync('off', ''); render(); toast('Sync getrennt');
+    }
+  },
+  export: () => exportJSON(),
+  import: () => $('#in-import').click(),
+  install: async () => { if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {}); deferredInstall = null; render(); } },
+  'notif-enable': async () => {
+    if (!('Notification' in window)) return;
+    const p = await Notification.requestPermission(); render();
+    if (p === 'granted') { toast('Benachrichtigungen aktiviert'); checkNotifications(); }
+    else if (p === 'denied') toast('Blockiert – das lässt sich in den Browser-Einstellungen für diese Seite ändern', 'err');
+  },
+  wipe: async () => {
+    if (!await confirmModal({ title: 'Alles auf diesem Gerät löschen?', text: 'Alle Unterlagen, Fotos, Notizen und Aufgaben auf diesem Gerät werden entfernt. Ist Sync eingerichtet, bleiben sie im GitHub-Repo und kommen beim nächsten Abgleich zurück.', ok: 'Alles löschen' })) return;
+    flushAll(); DB.close(); indexedDB.deleteDatabase('schulvault').onsuccess = () => { localStorage.removeItem('sv_last'); location.hash = '#/'; location.reload(); };
+  }
+};
+const CHG = {
+  dsort: el => { UI.dsort = el.value; render(); },
+  tfield: el => { UI.tfield = el.value; render(); },
+  'doc-move': el => { const d = byId('docs', el.dataset.id); if (d && el.value) { d.fieldId = el.value; touch('docs', d); render(); showSaved(); } }
+};
+const INP = {
+  dq: el => { UI.dq = el.value; const f = byId('fields', UI.fid); if (f) $('#dlist').innerHTML = docListHTML(docsOfField(f.id)); },
+  q: el => { UI.q = el.value; $('#sres').innerHTML = searchHTML(UI.q); }
+};
+const SUB = {
+  'todo-quick': form => {
+    const title = form.t.value.trim(); if (!title) { form.t.focus(); return; }
+    add('todos', { title, due: form.due.value || '', prio: 1, done: false, note: '', subs: [], fieldId: form.dataset.f || null, docId: form.dataset.d || null, space: form.dataset.sp || 'schule' });
+    render(); const i = $('.quick input[name=t]'); if (i) i.focus();
+  }
+};
+function onBind(el) {
+  const [t, id, prop] = el.dataset.bind.split('.'), o = byId(t, id); if (!o) return;
+  const v = el.value;
+  debounced(el.dataset.bind, () => { if (o[prop] === v) return; o[prop] = v; touch(t, o); showSaved(); }, 400);
+}
+
+/* ---------- Start ---------- */
+function wire() {
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-a]'); if (!el) return;
+    const fn = ACT[el.dataset.a]; if (fn) fn(el, e);
+  });
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.bind) onBind(el);
+    if (el.dataset.aInput && INP[el.dataset.aInput]) INP[el.dataset.aInput](el);
+    if (el.classList && el.classList.contains('autogrow')) autoGrow(el);
+  });
+  document.addEventListener('change', e => { const el = e.target; if (el.dataset.aChange && CHG[el.dataset.aChange]) CHG[el.dataset.aChange](el, e); });
+  document.addEventListener('submit', e => { const f = e.target; if (f.dataset && f.dataset.aSubmit) { e.preventDefault(); SUB[f.dataset.aSubmit](f); } });
+  document.addEventListener('keydown', e => {
+    const el = e.target;
+    if (el.dataset && el.dataset.aKey === 'tag' && (e.key === 'Enter' || e.key === ',')) { e.preventDefault(); addTag(el); return; }
+    if (el.classList && el.classList.contains('titleinp') && e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+    const modals = $$('.modal');
+    if (e.key === 'Escape') { if (modals.length) modals[modals.length - 1]._done(null); else if (LB.open) lbClose(); return; }
+    if (LB.open && !modals.length && el.tagName !== 'INPUT') { if (e.key === 'ArrowLeft') lbStep(-1); else if (e.key === 'ArrowRight') lbStep(1); }
+  });
+  document.addEventListener('focusout', e => {
+    const el = e.target;
+    if (el.dataset && el.dataset.aKey === 'tag' && el.value.trim()) addTag(el, false);
+    if (UI.rerender) setTimeout(() => { const ae = document.activeElement; if (UI.rerender && !(ae && $('#view').contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) { UI.rerender = false; render(); } }, 80);
+  });
+  // Foto-Viewer: Zoom per Tipp, Wischen zum Blättern
+  document.addEventListener('click', e => { const im = e.target.closest('#lbst img'); if (im) $('#lbst').classList.toggle('zoom'); });
+  let sx = 0, sy = 0;
+  document.addEventListener('touchstart', e => { if (e.target.closest('#lbst')) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!e.target.closest('#lbst') || $('#lbst').classList.contains('zoom')) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  // Datei-Eingaben
+  $('#in-cam').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'photo'), 'cam'); });
+  $('#in-gal').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'photo'), 'photo'); });
+  $('#in-file').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'file'), 'file'); });
+  $('#in-import').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    try { const ch = await importJSON(f); toast(ch ? 'Sicherung eingelesen' : 'Nichts Neues in der Sicherung'); render(); } catch (err) { toast(err.message, 'err'); }
+  });
+  window.addEventListener('hashchange', () => { flushAll(); if (LB.open) { LB.open = false; const el = $('#lb'); if (el) el.remove(); } render(true); });
+  window.addEventListener('pagehide', flushAll);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAll();
+    else if (configured() && Date.now() - lastSync() > 60000) runSync();
+  });
+  window.addEventListener('online', () => scheduleSync(500));
+  setInterval(() => { if (document.visibilityState === 'visible') checkNotifications(); }, 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkNotifications(); });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (location.hash === '#/settings') render(); });
+  setInterval(() => { if (document.visibilityState === 'visible' && configured() && cfg().auto !== false) runSync(); }, 5 * 60 * 1000);
+}
+
+async function init() {
+  try { DB = await idbOpen(); }
+  catch (e) { document.body.innerHTML = '<p style="padding:24px;font-family:sans-serif">Der lokale Speicher (IndexedDB) ist nicht verfügbar. Bitte in einem normalen Browser-Tab (nicht im privaten Modus) öffnen.</p>'; return; }
+  for (const k of COLL) S[k] = await idbAll(k);
+  (await idb('blobs', 'readonly', o => o.getAllKeys())).forEach(k => { if (typeof k === 'string' && !k.startsWith('t:')) HAVE.add(k); });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  wire();
+  if (configured()) setSync('idle', '');
+  render(true);
+  checkNotifications();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.addEventListener('message', ev => {
+      if (ev.data && ev.data.type === 'notif-nav' && ev.data.url) location.hash = ev.data.url.replace(/^#/, '');
+    });
+  }
+  if (configured()) runSync();
+}
+init();
+/* =====================================================================
+   Oberfläche Teil 3: Kalender (Monatsansicht + Turnus-Ansicht), Arbeiten
+   ===================================================================== */
+function ensureTurnusTypes() {
+  if (live('turnusTypes').length) return;
+  add('turnusTypes', { name: 'Berufsschule', color: '#4f46e5', order: 0 });
+  add('turnusTypes', { name: 'Betrieb', color: '#10b981', order: 1 });
+}
+const turnusTypesSorted = () => live('turnusTypes').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+/* ---------- Erinnerung: gemeinsame Felder für Aufgaben-, Arbeiten- und Termin-Dialog ---------- */
+function remindFields(item) {
+  return `<div class="two"><div><select class="inp" name="remind" aria-label="Erinnerung">${REMIND_OPTS.map(([v, l]) => `<option value="${v}" ${String(item && item.remind != null ? item.remind : '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div><input type="time" class="inp" name="notifyTime" aria-label="Uhrzeit" value="${esc(item && item.notifyTime ? item.notifyTime : '08:00')}"></div></div>
+    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Einstellungen aktivieren.</p>`;
+}
+function remindProps(F) {
+  const remind = F.remind.value === '' ? null : +F.remind.value;
+  return { remind, notifyTime: remind == null ? null : (F.notifyTime.value || '08:00') };
+}
+
+/* ---------- Arbeit (Klassenarbeit/Test): Baustein & Dialog ---------- */
+function examRow(e) {
+  const f = byId('fields', e.fieldId), d = daysBetween(today(), e.date);
+  const soon = e.remind != null && d >= 0 && d <= e.remind;
+  return `<div class="todo ${soon ? 'p2' : ''}" data-a="exam-edit" data-id="${e.id}" style="cursor:pointer">
+    <span class="ico" style="background:${f ? f.color : 'var(--accent)'};color:#fff">${ic('warn')}</span>
+    <div class="tbody"><div class="ttl">${esc(e.title)}</div>
+      <div class="tmeta">${f ? `<span class="tag fld" style="background:${f.color}">${esc(f.name)}</span>` : ''}
+      <span class="tag ${d < 0 ? 'due-over' : d === 0 ? 'due-today' : ''}">${ic('cal')}${esc(fmtDue(e.date))}</span>
+      ${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}</div></div></div>`;
+}
+function examModal(id, preset = {}) {
+  const e = id ? byId('exams', id) : null;
+  return askModal(`<h3>${e ? 'Arbeit bearbeiten' : 'Neue Arbeit'}</h3><form>
+    <label class="lbl">Thema / Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Klassenarbeit Rechnungswesen" autocomplete="off">
+    <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
+    <div><label class="lbl">Lernfeld</label><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true)}</select></div></div>
+    <label class="lbl">Erinnerung</label>${remindFields(e)}
+    <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
+    <div class="mact">${e ? `<button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button>` : ''}<button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    const F = $('form', m);
+    if (e) $('[data-del]', m).onclick = () => {
+      done(null); del('exams', e); render();
+      toast('Arbeit gelöscht', '', { label: 'Rückgängig', fn: () => { e.deleted = false; touch('exams', e); render(); } });
+    };
+    F.onsubmit = ev => {
+      ev.preventDefault();
+      const title = F.title.value.trim(); if (!title) { F.title.focus(); return; }
+      const props = { title, date: F.date.value || today(), fieldId: F.field.value || null, ...remindProps(F), note: F.note.value };
+      if (e) { Object.assign(e, props); touch('exams', e); } else add('exams', props);
+      done(true); checkNotifications(); render();
+    };
+    setTimeout(() => F.title.focus(), 30);
+  });
+}
+
+/* ---------- Termin (Alltag): Baustein & Dialog ---------- */
+function eventRow(e, dy) {
+  dy = dy || nextOccurrence(e, today()) || e.date; if (!dy) return '';
+  const f = byId('fields', e.fieldId), d = daysBetween(today(), dy);
+  const soon = e.remind != null && d >= 0 && d <= e.remind && dy === (nextOccurrence(e, today()) || e.date);
+  return `<div class="todo ${soon ? 'p2' : ''}" data-a="event-edit" data-id="${e.id}" style="cursor:pointer">
+    <span class="ico" style="background:${f ? f.color : '#0ea5e9'};color:#fff">${ic('cal')}</span>
+    <div class="tbody"><div class="ttl">${esc(e.title)}</div>
+      <div class="tmeta">${f ? `<span class="tag fld" style="background:${f.color}">${esc(f.name)}</span>` : ''}
+      <span class="tag ${d < 0 ? 'due-over' : d === 0 ? 'due-today' : ''}">${ic('cal')}${esc(fmtDue(dy))}</span>
+      ${e.repeat && e.repeat !== 'once' ? `<span class="tag">${ic('refresh')}${REPEAT_LABEL[e.repeat]}</span>` : ''}
+      ${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}</div></div></div>`;
+}
+function eventModal(id, preset = {}) {
+  const e = id ? byId('events', id) : null;
+  return askModal(`<h3>${e ? 'Termin bearbeiten' : 'Neuer Termin'}</h3><form>
+    <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Geburtstag Mama, Müllabfuhr, Miete" autocomplete="off">
+    <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
+    <div><label class="lbl">Kategorie</label><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'alltag')}</select></div></div>
+    <label class="lbl">Wiederholung</label><select class="inp" name="repeat">${REPEAT_OPTS.map(([v, l]) => `<option value="${v}" ${((e && e.repeat) || 'once') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <label class="lbl">Erinnerung</label>${remindFields(e)}
+    <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
+    <div class="mact">${e ? `<button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button>` : ''}<button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    const F = $('form', m);
+    if (e) $('[data-del]', m).onclick = () => {
+      done(null); del('events', e); render();
+      toast('Termin gelöscht', '', { label: 'Rückgängig', fn: () => { e.deleted = false; touch('events', e); render(); } });
+    };
+    F.onsubmit = ev => {
+      ev.preventDefault();
+      const title = F.title.value.trim(); if (!title) { F.title.focus(); return; }
+      const props = { title, date: F.date.value || today(), fieldId: F.field.value || null, repeat: F.repeat.value || 'once', ...remindProps(F), note: F.note.value };
+      if (e) { Object.assign(e, props); touch('events', e); } else add('events', props);
+      done(true); checkNotifications(); render();
+    };
+    setTimeout(() => F.title.focus(), 30);
+  });
+}
+
+/* ---------- Turnus-Arten verwalten ---------- */
+function typesModalBody() {
+  const types = turnusTypesSorted();
+  return `<h3>Turnus-Arten</h3>${types.length ? `<div class="menu" id="tlist">${types.map(t => `
+    <div class="row" style="cursor:default"><span class="ico" style="background:${t.color};color:#fff">${ic('folder')}</span>
+      <span class="grow"><b>${esc(t.name)}</b></span>
+      <button class="icon-btn" data-a="tt-edit" data-id="${t.id}" aria-label="Bearbeiten">${ic('edit')}</button>
+      <button class="icon-btn" data-a="tt-del" data-id="${t.id}" aria-label="Löschen">${ic('trash')}</button></div>`).join('')}</div>`
+    : `<p class="hint">Noch keine Art angelegt, z. B. „Berufsschule“ und „Betrieb“.</p>`}
+    <div class="mact" style="justify-content:space-between"><button type="button" class="btn" data-a="tt-add">${ic('plus')} Neue Art</button><button type="button" class="btn primary" data-close>Fertig</button></div>`;
+}
+function turnusTypesModal() { return askModal(typesModalBody(), () => {}); }
+function refreshTypesModal() {
+  const modal = $$('.modal').pop(); if (!modal) return;
+  const mb = $('.mbox', modal); if (mb) mb.innerHTML = typesModalBody();
+  // innerHTML ersetzt die Knoten, also die generische data-close-Bindung von askModal() erneuern
+  $$('[data-close]', modal).forEach(b => b.onclick = () => modal._done(null));
+}
+
+/* ---------- Tages-Detail ---------- */
+function dayModal(dy) {
+  const exams = examsOnDay(dy), events = eventsOnDay(dy), wk = weekKeyOf(dy), tw = byId('turnusWeeks', wk), tt = tw ? byId('turnusTypes', tw.typeId) : null;
+  let body = '';
+  if (tt) body += `<p class="hint" style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${tt.color};display:inline-block"></span>${esc(tt.name)} · KW ${isoWeekNum(parseYmd(dy))}</p>`;
+  if (exams.length) body += `<div class="grp" style="margin-top:${tt ? 10 : 4}px">Arbeiten</div><div class="card">${exams.map(examRow).join('')}</div>`;
+  if (events.length) body += `<div class="grp">Termine</div><div class="card">${events.map(e => eventRow(e, dy)).join('')}</div>`;
+  if (!exams.length && !events.length) body += `<p class="hint">Nichts an diesem Tag.</p>`;
+  return askModal(`<h3>${esc(parseYmd(dy).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h3>${body}
+    <div class="mact"><button type="button" class="btn ghost" data-close>Schließen</button>
+      <button type="button" class="btn" data-a="exam-new" data-date="${dy}">${ic('warn')} Arbeit</button>
+      <button type="button" class="btn primary" data-a="event-new" data-date="${dy}">${ic('cal')} Termin</button></div>`,
+    () => {});
+}
+const examsOnDay = dy => live('exams').filter(e => e.date === dy).sort((a, b) => cmp(a.title, b.title));
+
+/* ---------- Ansicht: Kalender ---------- */
+function vCal() {
+  if (!UI.calRef) UI.calRef = today();
+  ensureTurnusTypes();
+  let h = `<div class="tabs"><button data-a="caltab" data-v="month" class="${UI.calTab === 'month' ? 'on' : ''}">${ic('cal')} Monat</button>
+    <button data-a="caltab" data-v="turnus" class="${UI.calTab === 'turnus' ? 'on' : ''}">${ic('folder')} Turnus</button></div>`;
+  h += UI.calTab === 'turnus' ? vCalTurnus() : vCalMonth();
+  return { title: 'Kalender', body: h };
+}
+function vCalMonth() {
+  const rd = parseYmd(UI.calRef), y = rd.getFullYear(), mo = rd.getMonth();
+  const gridStart = mondayOf(new Date(y, mo, 1));
+  let cells = []; for (let i = 0; i < 42; i++) { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); cells.push(d); }
+  while (cells.length > 35 && cells[cells.length - 7].getMonth() !== mo) cells = cells.slice(0, cells.length - 7);
+  const rows = []; for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  const monthLabel = rd.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const types = new Map(live('turnusTypes').map(t => [t.id, t]));
+  const weeks = new Map(live('turnusWeeks').map(w => [w.id, w]));
+  const t0 = today(), cf = UI.calFilter || 'alle';
+  let h = `<div class="calnav"><button class="icon-btn" data-a="cal-prev" aria-label="Voriger Monat">${ic('chevl')}</button>
+    <b>${esc(monthLabel)}</b><button class="icon-btn" data-a="cal-next" aria-label="Nächster Monat">${ic('chevr')}</button>
+    <button class="btn small ghost" data-a="cal-today" style="margin-left:auto">Heute</button></div>`;
+  h += `<div class="chips" style="margin-bottom:10px">
+    <button class="chip btnlike ${cf === 'alle' ? 'on' : ''}" data-a="calf" data-v="alle">Alle</button>
+    <button class="chip btnlike ${cf === 'schule' ? 'on' : ''}" data-a="calf" data-v="schule">${ic('book')} Schule</button>
+    <button class="chip btnlike ${cf === 'alltag' ? 'on' : ''}" data-a="calf" data-v="alltag">${ic('home')} Alltag</button></div>`;
+  h += `<div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
+  rows.forEach(row => {
+    const wk = ymd(row[0]), tw = weeks.get(wk), tt = tw ? types.get(tw.typeId) : null;
+    h += `<button class="cal-wk" data-a="cal-week" data-week="${wk}" aria-label="Turnus für KW ${isoWeekNum(row[0])} wählen">${isoWeekNum(row[0])}</button>`;
+    row.forEach(d => {
+      const dy = ymd(d), inMonth = d.getMonth() === mo, isToday = dy === t0;
+      const dayExams = cf === 'alltag' ? [] : live('exams').filter(e => e.date === dy);
+      const dayEvents = cf === 'schule' ? [] : eventsOnDay(dy);
+      const total = dayExams.length + dayEvents.length;
+      const dots = [...dayExams.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="exam" style="background:${f ? f.color : 'var(--accent)'}"></i>`; }),
+        ...dayEvents.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="event" style="background:${f ? f.color : '#0ea5e9'}"></i>`; })].slice(0, 4).join('');
+      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''}" style="${tt ? `background:${hexA(tt.color, .16)}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(fmtDate(dy))}${total ? ', ' + total + ' Eintrag/Einträge' : ''}">
+        <span class="dn">${d.getDate()}</span>
+        ${total ? `<span class="dots">${dots}</span>` : ''}</button>`;
+    });
+  });
+  h += `</div>`;
+  if (types.size) h += `<div class="chips" style="margin-top:14px">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span class="chip" style="background:${hexA(t.color, .18)};color:${t.color}">${esc(t.name)}</span>`).join('')}</div>`;
+  h += `<button class="fab" data-a="cal-new">${ic('plus')} Eintrag</button>`;
+  return h;
+}
+function vCalTurnus() {
+  const anchor = UI.turnusAnchor || weekKeyOf(today());
+  const types = turnusTypesSorted(), t0wk = weekKeyOf(today());
+  const weeks = []; let cur = parseYmd(anchor);
+  for (let i = 0; i < 10; i++) { weeks.push(ymd(cur)); cur = new Date(cur); cur.setDate(cur.getDate() + 7); }
+  let h = `<div class="calnav"><button class="icon-btn" data-a="tw-prev" aria-label="Frühere Wochen">${ic('chevl')}</button>
+    <b>Turnus-Wochen</b><button class="icon-btn" data-a="tw-next" aria-label="Spätere Wochen">${ic('chevr')}</button>
+    <button class="btn small ghost" data-a="tw-today">Heute</button>
+    <button class="btn small" data-a="tw-manage" style="margin-left:auto">${ic('sliders')} Arten</button></div>`;
+  if (!types.length) {
+    h += `<div class="card empty">${ic('folder')}<p>Lege zuerst deine Turnus-Arten an, z. B. „Berufsschule“ und „Betrieb“.</p><button class="btn primary" data-a="tw-manage">${ic('plus')} Arten anlegen</button></div>`;
+    return h;
+  }
+  h += `<p class="hint" style="margin:0 2px 8px">Tippe eine Woche an, um ihr eine Art zuzuweisen. Nochmal tippen entfernt die Zuweisung.</p>`;
+  h += `<div class="card">${weeks.map(wk => {
+    const tw = byId('turnusWeeks', wk), isNow = wk === t0wk;
+    return `<div class="turnus-row ${isNow ? 'now' : ''}"><div class="tw-label"><b>KW ${isoWeekNum(parseYmd(wk))}${isNow ? ' · jetzt' : ''}</b><small>${weekRangeLabel(wk)}</small></div>
+      <div class="tw-chips">${types.map(t => `<button class="chip btnlike ${tw && tw.typeId === t.id ? 'on' : ''}" style="${tw && tw.typeId === t.id ? `background:${t.color};border-color:${t.color};color:#fff` : ''}" data-a="turnus-set" data-week="${wk}" data-t="${t.id}">${esc(t.name)}</button>`).join('')}</div></div>`;
+  }).join('')}</div>`;
+  return h;
+}
+
+/* ---------- Aktionen ---------- */
+Object.assign(ACT, {
+  caltab: el => { UI.calTab = el.dataset.v; render(); },
+  'cal-prev': () => { const d = parseYmd(UI.calRef || today()); d.setMonth(d.getMonth() - 1); UI.calRef = ymd(d); render(); },
+  'cal-next': () => { const d = parseYmd(UI.calRef || today()); d.setMonth(d.getMonth() + 1); UI.calRef = ymd(d); render(); },
+  'cal-today': () => { UI.calRef = today(); render(); },
+  'cal-day': el => dayModal(el.dataset.date),
+  'cal-week': el => {
+    const wk = el.dataset.week, types = turnusTypesSorted(), cur = byId('turnusWeeks', wk);
+    menuModal([...types.map(t => ({ label: t.name + (cur && cur.typeId === t.id ? ' ✓' : ''), icon: 'folder', fn: () => { setTurnusWeek(wk, t.id); render(); } })),
+      { label: 'Keine Angabe', icon: 'x', fn: () => { setTurnusWeek(wk, null); render(); } }]);
+  },
+  'exam-new': el => {
+    const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
+    examModal(null, { date: el.dataset.date });
+  },
+  'exam-edit': el => {
+    const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
+    examModal(el.dataset.id);
+  },
+  'event-new': el => {
+    const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
+    eventModal(null, { date: el.dataset.date });
+  },
+  'event-edit': el => {
+    const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
+    eventModal(el.dataset.id);
+  },
+  'cal-new': () => menuModal([
+    { label: 'Arbeit (Schule)', icon: 'warn', fn: () => examModal(null) },
+    { label: 'Termin (Alltag)', icon: 'cal', fn: () => eventModal(null) }
+  ]),
+  calf: el => { UI.calFilter = el.dataset.v; render(); },
+  'tw-prev': () => { const d = parseYmd(UI.turnusAnchor || weekKeyOf(today())); d.setDate(d.getDate() - 70); UI.turnusAnchor = ymd(d); render(); },
+  'tw-next': () => { const d = parseYmd(UI.turnusAnchor || weekKeyOf(today())); d.setDate(d.getDate() + 70); UI.turnusAnchor = ymd(d); render(); },
+  'tw-today': () => { UI.turnusAnchor = weekKeyOf(today()); render(); },
+  'tw-manage': () => turnusTypesModal(),
+  'turnus-set': el => { const wk = el.dataset.week, tid = el.dataset.t, cur = byId('turnusWeeks', wk); setTurnusWeek(wk, cur && cur.typeId === tid ? null : tid); render(); },
+  'tt-add': async () => {
+    const r = await fieldModal({ title: 'Neue Turnus-Art', color: COLORS[live('turnusTypes').length % COLORS.length], ok: 'Anlegen' }); if (!r) return;
+    add('turnusTypes', { name: r.name, color: r.color, order: live('turnusTypes').length });
+    refreshTypesModal(); render();
+  },
+  'tt-edit': async el => {
+    const t = byId('turnusTypes', el.dataset.id); if (!t) return;
+    const r = await fieldModal({ title: 'Art bearbeiten', name: t.name, color: t.color }); if (!r) return;
+    t.name = r.name; t.color = r.color; touch('turnusTypes', t);
+    refreshTypesModal(); render();
+  },
+  'tt-del': async el => {
+    const t = byId('turnusTypes', el.dataset.id); if (!t) return;
+    if (await confirmModal({ title: `„${t.name}“ löschen?`, text: 'Wochen mit dieser Art verlieren die Zuordnung.' })) {
+      del('turnusTypes', t);
+      live('turnusWeeks').filter(w => w.typeId === t.id).forEach(w => { w.typeId = null; w.deleted = true; touch('turnusWeeks', w); });
+      refreshTypesModal(); render();
+    }
+  }
+});
+</script>
+</body>
+</html>
