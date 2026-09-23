@@ -494,7 +494,7 @@ function upcomingExams(n) {
 function examSoonCount() {
   return live('exams').filter(e => e.remind != null).filter(e => { const d = daysBetween(today(), e.date); return d >= 0 && d <= e.remind; }).length;
 }
-const REMIND_OPTS = [['', 'Keine'], ['0', 'Am Tag selbst'], ['1', '1 Tag vorher'], ['2', '2 Tage vorher'], ['3', '3 Tage vorher'], ['5', '5 Tage vorher'], ['7', '1 Woche vorher']];
+const REMIND_OPTS = [['', 'Keine'], ['0', 'Am Tag selbst'], ['1', '1 Tag vorher'], ['2', '2 Tage vorher'], ['3', '3 Tage vorher'], ['5', '5 Tage vorher'], ['7', '1 Woche vorher'], ['14', '2 Wochen vorher'], ['21', '3 Wochen vorher'], ['30', '1 Monat vorher']];
 
 /* ---------- Termine (Alltag) mit Wiederholung ---------- */
 const REPEAT_OPTS = [['once', 'Einmalig'], ['weekly', 'Wöchentlich'], ['monthly', 'Monatlich'], ['yearly', 'Jährlich (z. B. Geburtstag)']];
@@ -954,6 +954,19 @@ function fieldModal({ title, name = '', color = COLORS[0], ok = 'Speichern', pla
     $('form', m).onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (!v) { inp.focus(); return; } done({ name: v, color: col }); };
   });
 }
+/* Für Auswahl-Dropdowns (Aufgabe/Arbeit/Termin): direkt ein neues Lernfeld/eine neue Kategorie anlegen, ohne den Dialog zu verlassen */
+async function quickCreateField(space) {
+  if (space === 'alltag') {
+    const r = await fieldModal({ title: 'Neue Kategorie', color: COLORS[altagFields().length % COLORS.length], ok: 'Anlegen', placeholder: 'z. B. Haushalt, Finanzen, Auto' });
+    if (!r) return null;
+    return add('fields', { yearId: null, name: r.name, color: r.color, note: '' });
+  }
+  const years = live('years').sort((a, b) => b.createdAt - a.createdAt);
+  const yid = years.length ? years[0].id : add('years', { name: defaultYearName(), note: '' }).id;
+  const r = await fieldModal({ title: 'Neues Lernfeld', color: COLORS[fieldsOfYear(yid).length % COLORS.length], ok: 'Anlegen', placeholder: 'z. B. Lernfeld 3 – Kundenberatung' });
+  if (!r) return null;
+  return add('fields', { yearId: yid, name: r.name, color: r.color, note: '' });
+}
 function newDocModal() {
   return askModal(`<h3>Neue Unterlage</h3><form><label class="lbl">Titel</label>
     <input class="inp" name="v" placeholder="z. B. Mitschrift Angebot & Nachfrage" autocomplete="off">
@@ -1246,7 +1259,7 @@ function todoModal(id) {
     <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(t.title)}" autocomplete="off">
     <div class="two"><div><label class="lbl">Fällig am</label><input type="date" class="inp" name="due" value="${esc(t.due || '')}"></div>
     <div><label class="lbl">Wichtigkeit</label><select class="inp" name="prio"><option value="0">Niedrig</option><option value="1">Normal</option><option value="2">Hoch</option></select></div></div>
-    <div class="two"><div><label class="lbl">${FWORD[sp]}</label><select class="inp" name="field">${fieldOptions(t.fieldId, true, sp)}</select></div>
+    <div class="two"><div><label class="lbl">${FWORD[sp]}</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(t.fieldId, true, sp)}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="${sp}" aria-label="Neu${sp === 'alltag' ? 'e Kategorie' : 'es Lernfeld'} anlegen">${ic('plus')}</button></div></div>
     <div><label class="lbl">Unterlage</label><select class="inp" name="doc">${docOptions(t.fieldId, t.docId)}</select></div></div>
     <label class="lbl">Teilaufgaben</label><div id="subs"></div>
     <div class="subrow"><input class="inp" id="newsub" placeholder="Teilaufgabe hinzufügen …" autocomplete="off"><button type="button" class="btn small" id="addsub" aria-label="Hinzufügen">${ic('plus')}</button></div>
@@ -1477,6 +1490,13 @@ const ACT = {
       { label: fw + ' löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${f.name}“ löschen?`, text: `Alle Unterlagen, Fotos und Notizen in diesem ${fw} werden gelöscht. Aufgaben bleiben erhalten.` })) { const y = yearOfField(f); del('fields', f); go(y ? '/y/' + y.id : '/'); } } }]);
   },
   'space-switch': el => { setSpace(el.dataset.v); render(); },
+  'field-quick-new': async el => {
+    const f = await quickCreateField(el.dataset.space); if (!f) return;
+    const form = el.closest('form'); if (!form) return;
+    const sel = form.querySelector('select[name=field]');
+    if (sel) sel.innerHTML = fieldOptions(f.id, true, el.dataset.space);
+    if (form.doc) form.doc.innerHTML = docOptions(f.id, null);
+  },
   ftab: el => { UI.ftab = el.dataset.v; render(); },
   dkind: el => { UI.dkind = el.dataset.v; render(); },
   'doc-new': async el => {
@@ -1688,7 +1708,7 @@ function examModal(id, preset = {}) {
   return askModal(`<h3>${e ? 'Arbeit bearbeiten' : 'Neue Arbeit'}</h3><form>
     <label class="lbl">Thema / Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Klassenarbeit Rechnungswesen" autocomplete="off">
     <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
-    <div><label class="lbl">Lernfeld</label><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true)}</select></div></div>
+    <div><label class="lbl">Lernfeld</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'schule')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="schule" aria-label="Neues Lernfeld anlegen">${ic('plus')}</button></div></div></div>
     <label class="lbl">Erinnerung</label>${remindFields(e)}
     <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
     <div class="mact">${e ? `<button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button>` : ''}<button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
@@ -1727,7 +1747,7 @@ function eventModal(id, preset = {}) {
   return askModal(`<h3>${e ? 'Termin bearbeiten' : 'Neuer Termin'}</h3><form>
     <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Geburtstag Mama, Müllabfuhr, Miete" autocomplete="off">
     <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
-    <div><label class="lbl">Kategorie</label><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'alltag')}</select></div></div>
+    <div><label class="lbl">Kategorie</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'alltag')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="alltag" aria-label="Neue Kategorie anlegen">${ic('plus')}</button></div></div></div>
     <label class="lbl">Wiederholung</label><select class="inp" name="repeat">${REPEAT_OPTS.map(([v, l]) => `<option value="${v}" ${((e && e.repeat) || 'once') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <label class="lbl">Erinnerung</label>${remindFields(e)}
     <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
