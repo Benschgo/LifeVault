@@ -274,6 +274,18 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.
 .cal-day .dots{display:flex;gap:2px}
 .cal-day .dots i{width:5px;height:5px;border-radius:50%;display:block}
 .cal-day .dots i.event{border-radius:1px}
+.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px}
+.wk-day{position:relative;border:0;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px;cursor:pointer;color:var(--text)}
+.wk-day:hover{background:var(--accent-soft)}
+.wk-day small{font-size:.62rem;color:var(--muted);font-weight:650}
+.wk-day .dn{font-size:.85rem;font-weight:600;line-height:1;position:relative;display:inline-flex}
+.wk-day.today .dn{background:var(--accent);color:var(--accent-ink);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.wk-day.weekend .dn{color:var(--muted)}
+.wk-day.holiday .dn{color:var(--danger)}
+.wk-day.today.holiday .dn{color:var(--accent-ink)}
+.wk-day .holidot{position:absolute;top:-3px;right:-7px;width:5px;height:5px;border-radius:50%;background:var(--danger)}
+.wk-day.today .holidot{background:#fff}
+.wk-day .idot{width:4px;height:4px;border-radius:50%;background:var(--accent2)}
 .turnus-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .turnus-row:last-child{border-bottom:0}
 .turnus-row.now{background:var(--accent-soft)}
@@ -1218,23 +1230,41 @@ function dashSection(title, link, rows) {
   if (!rows.length) return '';
   return `<section><div class="sec-h"><h2>${esc(title)}</h2>${link ? `<a href="#${link}">Alle</a>` : ''}</div><div class="card">${rows.join('')}</div></section>`;
 }
+const WD_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+function weekStripHTML(t0) {
+  const mon = mondayOf(parseYmd(t0));
+  const openDue = new Set(todosOpen().filter(t => t.due).map(t => t.due));
+  let h = `<div class="week-strip">`;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const dy = ymd(d), isToday = dy === t0, weekend = isWeekend(dy), hol = holidayOn(dy);
+    const tt = effectiveDayType(dy), ov = dayOverride(dy);
+    const hasItems = live('exams').some(e => e.date === dy) || eventsOnDay(dy).length > 0 || openDue.has(dy);
+    const bg = tt ? hexA(tt.color, .16) : (hol ? 'var(--accent-soft)' : (weekend ? 'var(--bg)' : ''));
+    const label = [fmtDate(dy), tt ? tt.name : '', hol || ''].filter(Boolean).join(', ');
+    h += `<button class="wk-day ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''}" style="${bg ? `background:${bg}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}">
+      <small>${WD_SHORT[i]}</small><span class="dn">${d.getDate()}${hol ? '<i class="holidot"></i>' : ''}</span>${hasItems ? '<i class="idot"></i>' : ''}</button>`;
+  }
+  return h + `</div>`;
+}
 function vDashboard() {
   const t0 = today();
   const openTodos = todosOpen();
   const overdue = sortTodos(openTodos.filter(t => t.due && t.due < t0));
   const dueToday = sortTodos(openTodos.filter(t => t.due === t0));
-  const soon = sortTodos(openTodos.filter(t => t.due && t.due > t0)).slice(0, 5);
+  const rest = sortTodos(openTodos.filter(t => !(t.due && t.due <= t0)));
   const nextExams = upcomingExams(3), nextEvents = upcomingEvents(3);
   const tt = effectiveDayType(t0), hol = holidayOn(t0);
   let h = `<div class="card pad" style="text-align:center">
     <b style="font-size:1.05rem">${esc(parseYmd(t0).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }))}</b>
     ${(tt || hol) ? `<div class="chips" style="justify-content:center;margin-top:8px">${tt ? `<span class="chip" style="background:${hexA(tt.color, .18)};color:${tt.color}">${esc(tt.name)}</span>` : ''}${hol ? `<span class="chip">${ic('cal')} ${esc(hol)}</span>` : ''}</div>` : ''}
+    ${weekStripHTML(t0)}
   </div>`;
-  h += dashSection('Fällig', '/inhalte', [...overdue, ...dueToday].map(t => todoRow(t)));
-  h += dashSection('Demnächst', '/inhalte', soon.map(t => todoRow(t)));
+  h += dashSection('Fällig', '/todo', [...overdue, ...dueToday].map(t => todoRow(t)));
+  h += dashSection('Aufgaben', '/todo', rest.slice(0, 8).map(t => todoRow(t)));
   h += dashSection('Anstehende Arbeiten', '/cal', nextExams.map(examRow));
   h += dashSection('Anstehende Termine', '/cal', nextEvents.map(e => eventRow(e)));
-  if (!overdue.length && !dueToday.length && !soon.length && !nextExams.length && !nextEvents.length) {
+  if (!overdue.length && !dueToday.length && !rest.length && !nextExams.length && !nextEvents.length) {
     h += `<div class="card empty">${ic('check')}<p>Nichts Dringendes. Trage Aufgaben, Arbeiten oder Termine ein, dann tauchen sie hier auf.</p></div>`;
   }
   return { title: 'Start', body: h };
