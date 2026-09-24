@@ -56,7 +56,10 @@ small,.muted{color:var(--muted)}
 #view{padding:14px 14px calc(var(--nav-h) + var(--safe-b) + 90px);max-width:940px;margin:0 auto}
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
-#nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:var(--nav-h);color:var(--muted);font-size:.72rem;font-weight:550;position:relative}
+#nav a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:var(--nav-h);color:var(--muted);font-size:.72rem;font-weight:550;position:relative}
+#nav a span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:460px){#nav a{font-size:.62rem;padding:0 1px}}
+@media (max-width:400px){#nav a{font-size:.58rem}#nav a .ic{width:18px;height:18px}}
 #nav a.on{color:var(--accent)}
 #nav .badge{position:absolute;top:7px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:.68rem;display:flex;align-items:center;justify-content:center;padding:0 5px}
 #nav .dot{position:absolute;top:10px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--danger)}
@@ -230,6 +233,13 @@ details.guide{margin-top:12px}
 details.guide summary{cursor:pointer;font-weight:650;padding:6px 0}
 details.guide ol{padding-left:20px;margin:8px 0}
 details.guide li{margin-bottom:8px}
+details.more{margin-top:10px}
+details.more summary{cursor:pointer;font-weight:650;padding:8px 2px;color:var(--muted);display:flex;align-items:center;gap:8px;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary .ic{width:17px;height:17px}
+details.more summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-left:auto;transition:transform .15s}
+details.more[open] summary::after{transform:rotate(-135deg)}
+details.more[open] summary{color:var(--text)}
 code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.88em;word-break:break-all}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:.82rem;font-weight:650}
 .pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
@@ -255,6 +265,12 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.
 .cal-day .dn{font-size:.8rem;font-weight:600;line-height:1}
 .cal-day.today .dn{background:var(--accent);color:var(--accent-ink);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .cal-day.out{opacity:.32}
+.cal-day.weekend .dn{color:var(--muted)}
+.cal-day.holiday .dn{color:var(--danger)}
+.cal-day .dn{position:relative;display:inline-flex}
+.cal-day .holidot{position:absolute;top:-3px;right:-7px;width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.cal-day.today .holidot{background:#fff}
+.cal-day.override::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:var(--accent2)}
 .cal-day .dots{display:flex;gap:2px}
 .cal-day .dots i{width:5px;height:5px;border-radius:50%;display:block}
 .cal-day .dots i.event{border-radius:1px}
@@ -295,8 +311,8 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
 const APP_VERSION = '1.0.0';
-const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'events'];
-const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], events: [] };
+const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes'];
+const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
 const SPACES = { schule: { label: 'Schule', icon: 'book' }, alltag: { label: 'Alltag', icon: 'home' } };
 const FWORD = { schule: 'Lernfeld', alltag: 'Kategorie' };
@@ -396,7 +412,7 @@ function toast(msg, type = '', action) {
 let DB;
 function idbOpen() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open('schulvault', 3);
+    const r = indexedDB.open('schulvault', 4);
     r.onupgradeneeded = () => {
       const d = r.result;
       // guard mit contains(): so bekommen auch bereits installierte Geräte die neuen Speicherbereiche, ohne die alten anzufassen
@@ -455,6 +471,12 @@ const todoSpace = t => t.space || spaceOfField(byId('fields', t.fieldId));
 const todosOfSpace = sp => live('todos').filter(t => todoSpace(t) === sp);
 const docsOfSpace = sp => live('docs').filter(d => spaceOfField(byId('fields', d.fieldId)) === sp);
 const docsOfField = fid => live('docs').filter(d => d.fieldId === fid);
+/* Schule/Alltag zusammengelegt, aber weiterhin per Filter-Chips (Alle/Schule/Alltag) trennbar */
+const todosOfFilter = f => (!f || f === 'alle') ? live('todos') : todosOfSpace(f);
+const docsOfFilter = f => (!f || f === 'alle') ? live('docs') : docsOfSpace(f);
+const noteSpace = n => n.space || spaceOfField(byId('fields', n.fieldId));
+const notesOfSpace = sp => live('notes').filter(n => noteSpace(n) === sp);
+const notesOfFilter = f => (!f || f === 'alle') ? live('notes') : notesOfSpace(f);
 const attsOf = (docId, role) => live('atts').filter(a => a.docId === docId && a.role === role).sort((a, b) => a.order - b.order);
 const todosOpen = () => live('todos').filter(t => !t.done);
 function yearOfField(f) { return f ? byId('years', f.yearId) : null; }
@@ -487,6 +509,90 @@ function setTurnusWeek(wk, typeId) {
   if (cur) { cur.deleted = false; cur.typeId = typeId; touch('turnusWeeks', cur); }
   else add('turnusWeeks', { id: wk, typeId });
 }
+/* Einzelner Tag: Standard = Wochenmuster der zugewiesenen Turnus-Art (type.days, ISO 1=Mo…7=So).
+   Eine Ausnahme (turnusDays) überschreibt das für genau diesen Tag – auch mit „frei“ (typeId:null). */
+const dayOverride = dy => live('turnusDays').find(x => x.date === dy) || null;
+function setDayOverride(dy, typeId) {
+  // typeId: Art-ID = auf diese Art setzen, null = ausdrücklich „frei“ für den Tag, 'auto' = Ausnahme entfernen (zurück zum Wochenmuster)
+  const cur = S.turnusDays.find(x => x.date === dy && !x.deleted);
+  if (typeId === 'auto') { if (cur) { cur.deleted = true; touch('turnusDays', cur); } return; }
+  if (cur) { cur.typeId = typeId; touch('turnusDays', cur); }
+  else add('turnusDays', { date: dy, typeId });
+}
+function effectiveDayType(dy) {
+  const ov = dayOverride(dy);
+  if (ov) return ov.typeId ? byId('turnusTypes', ov.typeId) : null;
+  const tw = byId('turnusWeeks', weekKeyOf(dy)); if (!tw) return null;
+  const tt = byId('turnusTypes', tw.typeId); if (!tt) return null;
+  const wd = parseYmd(dy).getDay() || 7;
+  return (tt.days && tt.days.length ? tt.days : [1, 2, 3, 4, 5]).includes(wd) ? tt : null;
+}
+/* Duplikate reparieren, die z. B. entstehen, wenn die App auf mehreren Geräten je einmal
+   ohne vorherigen Sync geöffnet wurde und dabei jedes Gerät eigene Standard-Arten anlegt. */
+function dedupeTurnusTypes() {
+  const groups = new Map();
+  live('turnusTypes').sort((a, b) => a.createdAt - b.createdAt).forEach(t => {
+    const key = t.name.trim().toLowerCase();
+    if (!groups.has(key)) groups.set(key, []); groups.get(key).push(t);
+  });
+  let changed = false;
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    const keep = list[0];
+    for (const dupe of list.slice(1)) {
+      live('turnusWeeks').filter(w => w.typeId === dupe.id).forEach(w => { w.typeId = keep.id; touch('turnusWeeks', w); });
+      live('turnusDays').filter(d => d.typeId === dupe.id).forEach(d => { d.typeId = keep.id; touch('turnusDays', d); });
+      del('turnusTypes', dupe); changed = true;
+    }
+  }
+  return changed;
+}
+
+/* ---------- Feiertage (nach Bundesland) ---------- */
+const HOLIDAY_STATES = [
+  ['', 'Nicht auswählen'], ['BW', 'Baden-Württemberg'], ['BY', 'Bayern'], ['BE', 'Berlin'], ['BB', 'Brandenburg'],
+  ['HB', 'Bremen'], ['HH', 'Hamburg'], ['HE', 'Hessen'], ['MV', 'Mecklenburg-Vorpommern'], ['NI', 'Niedersachsen'],
+  ['NW', 'Nordrhein-Westfalen'], ['RP', 'Rheinland-Pfalz'], ['SL', 'Saarland'], ['SN', 'Sachsen'],
+  ['ST', 'Sachsen-Anhalt'], ['SH', 'Schleswig-Holstein'], ['TH', 'Thüringen']
+];
+function easterSunday(y) {
+  // Gauß'sche Osterformel
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4,
+    f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
+    m = Math.floor((a + 11 * h + 22 * l) / 451), month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, month - 1, day);
+}
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+function germanHolidays(year, state) {
+  if (!state) return new Map();
+  const os = easterSunday(year), m = new Map();
+  const set = (d, name) => m.set(ymd(Array.isArray(d) ? new Date(year, d[0] - 1, d[1]) : d), name);
+  set([1, 1], 'Neujahr'); set([5, 1], 'Tag der Arbeit'); set([10, 3], 'Tag der Deutschen Einheit'); set([12, 25], '1. Weihnachtstag'); set([12, 26], '2. Weihnachtstag');
+  set(addDays(os, -2), 'Karfreitag'); set(addDays(os, 1), 'Ostermontag'); set(addDays(os, 39), 'Christi Himmelfahrt'); set(addDays(os, 50), 'Pfingstmontag');
+  if (['BW', 'BY', 'ST', 'TH', 'SN', 'HE', 'RP', 'SL', 'NW'].includes(state)) set([1, 6], 'Heilige Drei Könige');
+  if (['BW', 'BY', 'HE', 'NW', 'RP', 'SL'].includes(state)) set(addDays(os, 60), 'Fronleichnam');
+  if (state === 'BY') set([8, 15], 'Mariä Himmelfahrt');
+  if (['BB', 'MV', 'SN', 'ST', 'TH', 'HB', 'HH', 'NI', 'SH', 'BE'].includes(state)) set([10, 31], 'Reformationstag');
+  if (['BW', 'BY', 'NW', 'RP', 'SL'].includes(state)) set([11, 1], 'Allerheiligen');
+  if (state === 'BE') set([3, 8], 'Internationaler Frauentag');
+  if (state === 'TH') set([9, 20], 'Weltkindertag');
+  if (state === 'SN') set(nthWeekdayBefore(year, 11, 23, 3), 'Buß- und Bettag');
+  return m;
+}
+function nthWeekdayBefore(year, month, day, weekday) {
+  // findet den Wochentag (0=So…6=Sa) unmittelbar vor dem angegebenen Datum
+  let d = addDays(new Date(year, month - 1, day), -1);
+  while (d.getDay() !== weekday) d = addDays(d, -1);
+  return d;
+}
+function holidayOn(dy) {
+  const state = (typeof cfg === 'function' ? cfg().bundesland : '') || '';
+  if (!state) return null;
+  const y = parseYmd(dy).getFullYear();
+  return germanHolidays(y, state).get(dy) || germanHolidays(y + 1, state).get(dy) || germanHolidays(y - 1, state).get(dy) || null;
+}
+const isWeekend = dy => { const wd = parseYmd(dy).getDay(); return wd === 0 || wd === 6; };
 function upcomingExams(n) {
   return live('exams').filter(e => daysBetween(today(), e.date) >= 0)
     .sort((a, b) => a.date.localeCompare(b.date) || cmp(a.title, b.title)).slice(0, n);
@@ -847,6 +953,7 @@ async function runSync(manual = false) {
       }
       break;
     }
+    if (dedupeTurnusTypes()) anyChange = true;   // von mehreren Geräten unabhängig angelegte Standard-Arten zusammenführen
     localStorage.setItem('sv_last', String(now()));
     setSync('ok', 'Synchronisiert');
     if (manual) toast('Synchronisiert ✓');
@@ -903,11 +1010,15 @@ async function importJSON(file) {
 /* =====================================================================
    Oberfläche Teil 1: Dialoge, Router, Ansichten (Start, Schuljahr/Kategorie, Lernfeld, Unterlage)
    ===================================================================== */
-const UI = { space: localStorage.getItem('sv_space') === 'alltag' ? 'alltag' : 'schule', ftab: 'docs', fid: null, dkind: 'all', dq: '', dsort: 'date', tfilter: 'open', tfield: '', q: '', attachDoc: null, rerender: false, focusTag: false, calTab: 'month', calFilter: 'alle', calRef: null, turnusAnchor: null };
+const UI = { filter: ['alle', 'schule', 'alltag'].includes(localStorage.getItem('sv_space')) ? localStorage.getItem('sv_space') : 'alle', ftab: 'docs', fid: null, dkind: 'all', dq: '', dsort: 'date', tfilter: 'open', tfield: '', q: '', attachDoc: null, rerender: false, focusTag: false, calTab: 'month', calFilter: 'alle', calRef: null, turnusAnchor: null };
 let deferredInstall = null;
-function setSpace(v) { if (v !== 'schule' && v !== 'alltag') return; UI.space = v; UI.tfield = ''; localStorage.setItem('sv_space', v); }
-function spaceSwitcher() {
-  return `<div class="seg spacesw">${Object.entries(SPACES).map(([k, v]) => `<button type="button" data-a="space-switch" data-v="${k}" class="${UI.space === k ? 'on' : ''}">${ic(v.icon)} ${v.label}</button>`).join('')}</div>`;
+const FWORD_ALL = 'Lernfeld/Kategorie';
+function setFilter(v) { if (!['alle', 'schule', 'alltag'].includes(v)) return; UI.filter = v; UI.tfield = ''; localStorage.setItem('sv_space', v); }
+function spaceSwitcher(action = 'space-switch', cur = UI.filter) {
+  return `<div class="chips filterbar" style="margin-bottom:16px">
+    <button type="button" data-a="${action}" data-v="alle" class="chip btnlike ${cur === 'alle' ? 'on' : ''}">Alle</button>
+    <button type="button" data-a="${action}" data-v="schule" class="chip btnlike ${cur === 'schule' ? 'on' : ''}">${ic('book')} Schule</button>
+    <button type="button" data-a="${action}" data-v="alltag" class="chip btnlike ${cur === 'alltag' ? 'on' : ''}">${ic('home')} Alltag</button></div>`;
 }
 
 /* ---------- Dialoge (ohne natives confirm/prompt – die funktionieren in installierten PWAs nicht zuverlässig) ---------- */
@@ -981,8 +1092,18 @@ function newDocModal() {
 }
 
 /* ---------- Optionen ---------- */
-function fieldOptions(sel, withNone = false, space = UI.space) {
+function fieldOptions(sel, withNone = false, space = UI.filter) {
   let o = withNone ? `<option value="">– kein${space === 'alltag' ? 'e Kategorie' : ' Lernfeld'} –</option>` : '';
+  if (space === 'alle') {
+    o = withNone ? `<option value="">– ${FWORD_ALL} –</option>` : '';
+    const af = altagFields();
+    if (af.length) o += `<optgroup label="Alltag">${af.map(f => `<option value="${f.id}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</optgroup>`;
+    for (const y of live('years').sort((a, b) => b.createdAt - a.createdAt)) {
+      const fs = fieldsOfYear(y.id); if (!fs.length) continue;
+      o += `<optgroup label="${esc(y.name)}">${fs.map(f => `<option value="${f.id}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</optgroup>`;
+    }
+    return o;
+  }
   if (space === 'alltag') return o + altagFields().map(f => `<option value="${f.id}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('');
   for (const y of live('years').sort((a, b) => b.createdAt - a.createdAt)) {
     const fs = fieldsOfYear(y.id); if (!fs.length) continue;
@@ -1022,7 +1143,7 @@ function todoRow(t, opt = {}) {
       ${d && !opt.noDoc ? `<span class="tag">${ic('file')}${esc(d.title || 'Unterlage')}</span>` : ''}</div></div></div>`;
 }
 function quickForm(ctx) {
-  const sp = ctx.space || (ctx.fieldId ? spaceOfField(byId('fields', ctx.fieldId)) : UI.space);
+  const sp = ctx.space && ctx.space !== 'alle' ? ctx.space : (ctx.fieldId ? spaceOfField(byId('fields', ctx.fieldId)) : (UI.filter !== 'alle' ? UI.filter : 'schule'));
   return `<form class="quick" data-a-submit="todo-quick" data-f="${ctx.fieldId || ''}" data-d="${ctx.docId || ''}" data-sp="${sp}">
     <input class="inp" name="t" placeholder="${sp === 'alltag' ? 'Neue Aufgabe / Erledigung …' : 'Neue Aufgabe / Hausaufgabe …'}" autocomplete="off" aria-label="Neue Aufgabe">
     <input class="inp" type="date" name="due" aria-label="Fällig am"><button class="btn primary" aria-label="Aufgabe hinzufügen">${ic('plus')}</button></form>`;
@@ -1040,7 +1161,7 @@ function render(nav = false) {
   const [a, id] = (location.hash.slice(1) || '/').split('/').filter(Boolean);
   let v;
   try {
-    v = !a ? vHome() : a === 'y' ? vYear(id) : a === 'f' ? vField(id) : a === 'd' ? vDoc(id) : a === 'todo' ? vTodos() : a === 'cal' ? vCal() : a === 'search' ? vSearch() : a === 'settings' ? vSettings() : vHome();
+    v = !a ? vDashboard() : a === 'inhalte' ? vInhalte() : a === 'y' ? vYear(id) : a === 'f' ? vField(id) : a === 'd' ? vDoc(id) : a === 'todo' ? vTodos() : a === 'notizen' ? vNotizen() : a === 'cal' ? vCal() : a === 'search' ? vSearch() : a === 'settings' ? vSettings() : vDashboard();
   } catch (e) { console.error(e); v = { title: 'Fehler', body: `<div class="card empty"><p>${esc(e.message)}</p></div>` }; }
   if (!v) { location.replace('#/'); return; }
   $('#top').innerHTML = `${v.back ? `<button class="icon-btn" data-a="nav" data-to="${v.back}" aria-label="Zurück">${ic('back')}</button>` : ''}
@@ -1050,10 +1171,17 @@ function render(nav = false) {
   if (nav) window.scrollTo(0, 0);
 }
 function renderNav(a) {
-  const t0 = today(), over = todosOpen().filter(t => t.due && t.due <= t0).length, soon = examSoonCount() + eventSoonCount();
-  const items = [['/', 'folder', 'Unterlagen', ['', 'y', 'f', 'd']], ['/todo', 'check', 'Aufgaben', ['todo']], ['/cal', 'cal', 'Kalender', ['cal']], ['/search', 'search', 'Suche', ['search']], ['/settings', 'sliders', 'Einstellungen', ['settings']]];
+  const over = todosOpen().filter(t => t.due && t.due <= today()).length, soon = examSoonCount() + eventSoonCount();
+  const items = [
+    ['/', 'home', 'Start', ['']],
+    ['/inhalte', 'folder', 'Inhalte', ['inhalte', 'y', 'f', 'd']],
+    ['/notizen', 'note', 'Notizen', ['notizen']],
+    ['/cal', 'cal', 'Kalender', ['cal']],
+    ['/search', 'search', 'Suche', ['search']],
+    ['/settings', 'sliders', 'Einstellungen', ['settings']]
+  ];
   $('#nav').innerHTML = `<div class="brand"><span>${ic('folder')}</span>LifeVault</div>` + items.map(([h, i, l, keys]) =>
-    `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/todo' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
+    `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
 }
 function autoGrow(el) { const min = el.dataset.min !== undefined ? +el.dataset.min : 96; el.style.height = 'auto'; el.style.height = Math.max(min, el.scrollHeight + 2) + 'px'; }
 function afterRender() {
@@ -1085,43 +1213,61 @@ function updateSyncUI() {
   if ($('#nav')) renderNav(nav);
 }
 
-/* ---------- Ansicht: Start ---------- */
-function vHome() { return UI.space === 'alltag' ? vHomeAlltag() : vHomeSchule(); }
-function vHomeSchule() {
-  const years = live('years').sort((a, b) => b.createdAt - a.createdAt);
-  const open = sortTodos(todosOfSpace('schule').filter(t => !t.done)).slice(0, 4);
-  const recent = docsOfSpace('schule').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
-  const nextExams = upcomingExams(4);
-  let h = spaceSwitcher();
-  if (open.length) h += `<section><div class="sec-h"><h2>Als Nächstes</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${open.map(t => todoRow(t)).join('')}</div></section>`;
-  if (nextExams.length) h += `<section><div class="sec-h"><h2>Anstehende Arbeiten</h2><a href="#/cal">Kalender</a></div><div class="card">${nextExams.map(examRow).join('')}</div></section>`;
-  h += `<section><div class="sec-h"><h2>Schuljahre</h2><button class="btn small" data-a="year-new">${ic('plus')} Schuljahr</button></div>`;
-  if (!years.length) h += `<div class="card empty">${ic('book')}<p>Willkommen bei LifeVault! Lege zuerst dein Schuljahr an. Darin sammelst du Lernfelder, Unterlagen, Notizen und Fotos.</p><button class="btn primary" data-a="year-new">${ic('plus')} Schuljahr anlegen</button></div>`;
-  else h += `<div class="grid">${years.map(y => {
-    const fs = fieldsOfYear(y.id), nd = fs.reduce((n, f) => n + docsOfField(f.id).length, 0);
-    return `<a class="card ycard" href="#/y/${y.id}"><b>${esc(y.name)}</b><small>${fs.length} Lernfelder · ${nd} Unterlagen</small></a>`;
-  }).join('')}</div>`;
-  h += '</section>';
-  if (recent.length) h += `<section><div class="sec-h"><h2>Zuletzt bearbeitet</h2></div><div class="card">${recent.map(d => docRow(d)).join('')}</div></section>`;
-  return { title: 'Schule', body: h };
+/* ---------- Ansicht: Start (Dashboard) ---------- */
+function dashSection(title, link, rows) {
+  if (!rows.length) return '';
+  return `<section><div class="sec-h"><h2>${esc(title)}</h2>${link ? `<a href="#${link}">Alle</a>` : ''}</div><div class="card">${rows.join('')}</div></section>`;
 }
-function vHomeAlltag() {
-  const fs = altagFields();
-  const open = sortTodos(todosOfSpace('alltag').filter(t => !t.done)).slice(0, 4);
-  const recent = docsOfSpace('alltag').sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
-  const nextEvents = upcomingEvents(4);
+function vDashboard() {
+  const t0 = today();
+  const openTodos = todosOpen();
+  const overdue = sortTodos(openTodos.filter(t => t.due && t.due < t0));
+  const dueToday = sortTodos(openTodos.filter(t => t.due === t0));
+  const soon = sortTodos(openTodos.filter(t => t.due && t.due > t0)).slice(0, 5);
+  const nextExams = upcomingExams(3), nextEvents = upcomingEvents(3);
+  const tt = effectiveDayType(t0), hol = holidayOn(t0);
+  let h = `<div class="card pad" style="text-align:center">
+    <b style="font-size:1.05rem">${esc(parseYmd(t0).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }))}</b>
+    ${(tt || hol) ? `<div class="chips" style="justify-content:center;margin-top:8px">${tt ? `<span class="chip" style="background:${hexA(tt.color, .18)};color:${tt.color}">${esc(tt.name)}</span>` : ''}${hol ? `<span class="chip">${ic('cal')} ${esc(hol)}</span>` : ''}</div>` : ''}
+  </div>`;
+  h += dashSection('Fällig', '/inhalte', [...overdue, ...dueToday].map(t => todoRow(t)));
+  h += dashSection('Demnächst', '/inhalte', soon.map(t => todoRow(t)));
+  h += dashSection('Anstehende Arbeiten', '/cal', nextExams.map(examRow));
+  h += dashSection('Anstehende Termine', '/cal', nextEvents.map(e => eventRow(e)));
+  if (!overdue.length && !dueToday.length && !soon.length && !nextExams.length && !nextEvents.length) {
+    h += `<div class="card empty">${ic('check')}<p>Nichts Dringendes. Trage Aufgaben, Arbeiten oder Termine ein, dann tauchen sie hier auf.</p></div>`;
+  }
+  return { title: 'Start', body: h };
+}
+
+/* ---------- Ansicht: Inhalte (Schuljahre, Lernfelder & Kategorien zusammen) ---------- */
+function vInhalte() {
+  const f = UI.filter, recent = docsOfFilter(f).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
+  const openTodos = sortTodos(todosOfFilter(f).filter(t => !t.done)).slice(0, 4);
+  const years = f === 'alltag' ? [] : live('years').sort((a, b) => b.createdAt - a.createdAt);
+  const alltagFs = f === 'schule' ? [] : altagFields();
   let h = spaceSwitcher();
-  if (open.length) h += `<section><div class="sec-h"><h2>Als Nächstes</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${open.map(t => todoRow(t)).join('')}</div></section>`;
-  if (nextEvents.length) h += `<section><div class="sec-h"><h2>Anstehende Termine</h2><a href="#/cal">Kalender</a></div><div class="card">${nextEvents.map(e => eventRow(e)).join('')}</div></section>`;
-  h += `<section><div class="sec-h"><h2>Kategorien</h2><button class="btn small" data-a="field-new">${ic('plus')} Kategorie</button></div>`;
-  if (!fs.length) h += `<div class="card empty">${ic('home')}<p>Willkommen im Alltag-Bereich von LifeVault! Lege deine erste Kategorie an, z. B. Haushalt, Finanzen, Auto oder Gesundheit.</p><button class="btn primary" data-a="field-new">${ic('plus')} Kategorie anlegen</button></div>`;
-  else h += `<div class="grid">${fs.map(f => {
-    const nd = docsOfField(f.id).length, nt = todosOfSpace('alltag').filter(t => !t.done && t.fieldId === f.id).length;
-    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}"><b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
-  }).join('')}</div>`;
+  if (openTodos.length) h += `<section><div class="sec-h"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${openTodos.map(t => todoRow(t)).join('')}</div></section>`;
+  else h += `<section><div class="sec-h"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card empty" style="padding:18px">${ic('check')}<p style="margin:4px auto">Nichts offen.</p></div></section>`;
+  h += `<section><div class="sec-h"><h2>Schuljahre &amp; Kategorien</h2><div style="display:flex;gap:6px">${f !== 'alltag' ? `<button class="btn small" data-a="year-new">${ic('plus')} Schuljahr</button>` : ''}${f !== 'schule' ? `<button class="btn small" data-a="field-new">${ic('plus')} Kategorie</button>` : ''}</div></div>`;
+  if (!years.length && !alltagFs.length) {
+    h += `<div class="card empty">${ic('folder')}<p>Willkommen bei LifeVault! Lege dein erstes Schuljahr oder deine erste Alltags-Kategorie an. Darin sammelst du Lernfelder, Unterlagen, Notizen und Fotos.</p>
+      <div class="actions" style="justify-content:center">${f !== 'alltag' ? `<button class="btn primary" data-a="year-new">${ic('plus')} Schuljahr anlegen</button>` : ''}${f !== 'schule' ? `<button class="btn ${f === 'alltag' ? 'primary' : ''}" data-a="field-new">${ic('plus')} Kategorie anlegen</button>` : ''}</div></div>`;
+  } else {
+    h += `<div class="grid">`;
+    h += years.map(y => {
+      const fs = fieldsOfYear(y.id), nd = fs.reduce((n, ff) => n + docsOfField(ff.id).length, 0);
+      return `<a class="card ycard" href="#/y/${y.id}"><b>${esc(y.name)}</b><small>${fs.length} Lernfelder · ${nd} Unterlagen</small></a>`;
+    }).join('');
+    h += alltagFs.map(ff => {
+      const nd = docsOfField(ff.id).length, nt = live('todos').filter(t => !t.done && t.fieldId === ff.id).length;
+      return `<a class="card fcard" href="#/f/${ff.id}" style="--c:${ff.color || COLORS[0]}"><b>${esc(ff.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
+    }).join('');
+    h += `</div>`;
+  }
   h += '</section>';
   if (recent.length) h += `<section><div class="sec-h"><h2>Zuletzt bearbeitet</h2></div><div class="card">${recent.map(d => docRow(d)).join('')}</div></section>`;
-  return { title: 'Alltag', body: h };
+  return { title: 'Inhalte', body: h };
 }
 
 /* ---------- Ansicht: Schuljahr ---------- */
@@ -1135,7 +1281,7 @@ function vYear(id) {
   }).join('')}</div>`
     : `<div class="card empty">${ic('folder')}<p>Noch keine Lernfelder. Lege z. B. „Lernfeld 1“ oder ein Fach an.</p><button class="btn primary" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld anlegen</button></div>`;
   h += `<section style="margin-top:24px"><div class="sec-h"><h2>Notizen zum Schuljahr</h2></div>${noteBox(`years.${id}.note`, y.note, 'Allgemeine Notizen, Termine, Lehrer, Prüfungsplan …')}</section>`;
-  return { title: y.name, back: '/', actions: `<button class="icon-btn" data-a="year-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+  return { title: y.name, back: '/inhalte', actions: `<button class="icon-btn" data-a="year-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
 
 /* ---------- Ansicht: Lernfeld ---------- */
@@ -1145,7 +1291,7 @@ function vField(id) {
   const sp = spaceOfField(f);
   const y = yearOfField(f), docs = docsOfField(id), todos = live('todos').filter(t => t.fieldId === id);
   const nOpen = todos.filter(t => !t.done).length;
-  let h = `<div class="crumb"><a href="#/">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}</div>`;
+  let h = `<div class="crumb"><a href="#/inhalte">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}</div>`;
   h += `<div class="tabs">
     <button data-a="ftab" data-v="docs" class="${UI.ftab === 'docs' ? 'on' : ''}">${ic('file')} Unterlagen <span class="n">${docs.length}</span></button>
     <button data-a="ftab" data-v="notes" class="${UI.ftab === 'notes' ? 'on' : ''}">${ic('note')} Notizen</button>
@@ -1163,7 +1309,7 @@ function vField(id) {
   } else {
     h += todoSection({ fieldId: id }, todos, { noField: true });
   }
-  return { title: f.name, back: y ? `/y/${y.id}` : '/', actions: `<button class="icon-btn" data-a="field-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+  return { title: f.name, back: y ? `/y/${y.id}` : '/inhalte', actions: `<button class="icon-btn" data-a="field-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
 function docListHTML(docs) {
   let list = docs.filter(d => UI.dkind === 'all' || d.kind === UI.dkind);
@@ -1194,14 +1340,16 @@ function vDoc(id) {
   const d = byId('docs', id); if (!d) return null;
   const f = byId('fields', d.fieldId), y = yearOfField(f), sp = spaceOfField(f);
   const files = attsOf(id, 'file'), photos = attsOf(id, 'photo'), kind = KINDS[d.kind] ? d.kind : 'digital';
-  let h = `<div class="crumb"><a href="#/">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}${f ? ` › <a href="#/f/${f.id}">${esc(f.name)}</a>` : ''}</div>`;
+  const hasMore = !!(d.place || (d.tags || []).length);
+  let h = `<div class="crumb"><a href="#/inhalte">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}${f ? ` › <a href="#/f/${f.id}">${esc(f.name)}</a>` : ''}</div>`;
   h += `<div class="card pad"><textarea class="titleinp autogrow" data-min="0" rows="1" enterkeyhint="done" data-bind="docs.${id}.title" placeholder="Titel der Unterlage" aria-label="Titel">\n${esc(d.title)}</textarea>
     <label class="lbl">Art</label><div class="seg">${Object.entries(KINDS).map(([k, v]) => `<button data-a="doc-kind" data-id="${id}" data-v="${k}" class="${k === kind ? 'on' : ''}">${ic(v.icon)} ${v.label}</button>`).join('')}</div>
     <p class="hint">${KINDS[kind].hint}</p>
     <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" data-bind="docs.${id}.date" value="${esc(d.date || '')}"></div>
     <div><label class="lbl">${FWORD[sp]}</label><select class="inp" data-a-change="doc-move" data-id="${id}">${fieldOptions(d.fieldId, false, sp)}</select></div></div>
+    <details class="more" ${hasMore ? 'open' : ''}><summary>${ic('sliders')} Mehr Details</summary>
     ${kind !== 'digital' ? `<label class="lbl">Ablageort (Papier)</label><input class="inp" data-bind="docs.${id}.place" value="${esc(d.place || '')}" placeholder="z. B. Ordner Wirtschaft, Register 3">` : ''}
-    <label class="lbl">Tags</label><div id="tagwrap">${tagBox(d)}</div></div>`;
+    <label class="lbl">Tags</label><div id="tagwrap">${tagBox(d)}</div></details></div>`;
 
   if (kind !== 'paper' || files.length) {
     h += `<section style="margin-top:22px"><div class="sec-h"><h2>Dateien <small>${files.length || ''}</small></h2><button class="btn small" data-a="file-add" data-id="${id}">${ic('plus')} Datei</button></div>
@@ -1220,7 +1368,7 @@ function vDoc(id) {
   }
   h += `<section style="margin-top:22px"><div class="sec-h"><h2>Notizen</h2></div>${noteBox(`docs.${id}.note`, d.note, 'Deine Notizen zu dieser Unterlage …')}</section>`;
   h += `<section><div class="sec-h"><h2>Aufgaben dazu</h2></div>${todoSection({ fieldId: d.fieldId, docId: id }, live('todos').filter(t => t.docId === id), { noField: true, noDoc: true })}</section>`;
-  return { title: d.title || 'Ohne Titel', back: f ? `/f/${f.id}` : '/', actions: `<button class="icon-btn" data-a="doc-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+  return { title: d.title || 'Ohne Titel', back: f ? `/f/${f.id}` : '/inhalte', actions: `<button class="icon-btn" data-a="doc-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
 /* =====================================================================
    Oberfläche Teil 2: Aufgaben, Suche, Einstellungen, Foto-Viewer, Aktionen, Start
@@ -1228,14 +1376,14 @@ function vDoc(id) {
 
 /* ---------- Ansicht: Aufgaben ---------- */
 function vTodos() {
-  let all = todosOfSpace(UI.space); if (UI.tfield) all = all.filter(t => t.fieldId === UI.tfield);
+  let all = todosOfFilter(UI.filter); if (UI.tfield) all = all.filter(t => t.fieldId === UI.tfield);
   const open = all.filter(t => !t.done), done = all.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
   let h = spaceSwitcher();
-  h += quickForm({ fieldId: UI.tfield, space: UI.space });
+  h += quickForm({ fieldId: UI.tfield, space: UI.filter });
   h += `<div class="filters"><div class="chips" style="flex:1">
       <button class="chip btnlike ${UI.tfilter === 'open' ? 'on' : ''}" data-a="tfilter" data-v="open">Offen · ${open.length}</button>
       <button class="chip btnlike ${UI.tfilter === 'done' ? 'on' : ''}" data-a="tfilter" data-v="done">Erledigt · ${done.length}</button></div>
-    <select class="inp" data-a-change="tfield" aria-label="Nach ${FWORD[UI.space]} filtern"><option value="">Alle ${UI.space === 'alltag' ? 'Kategorien' : 'Lernfelder'}</option>${fieldOptions(UI.tfield, false, UI.space)}</select></div>`;
+    <select class="inp" data-a-change="tfield" aria-label="Nach ${FWORD[UI.filter] || FWORD_ALL} filtern"><option value="">Alle ${UI.filter === 'alltag' ? 'Kategorien' : UI.filter === 'schule' ? 'Lernfelder' : 'Lernfelder/Kategorien'}</option>${fieldOptions(UI.tfield, false, UI.filter)}</select></div>`;
   if (UI.tfilter === 'open') {
     if (!open.length) h += `<div class="card empty">${ic('check')}<p>Nichts offen. Trage oben eine Hausaufgabe oder Lernaufgabe ein.</p></div>`;
     const t0 = today(), g = { over: [], today: [], week: [], later: [], none: [] };
@@ -1250,7 +1398,7 @@ function vTodos() {
     h += done.length ? `<div class="card">${done.map(t => todoRow(t)).join('')}</div><div class="actions"><button class="btn danger small" data-a="todo-clear">${ic('trash')} Erledigte löschen</button></div>`
       : `<div class="card empty">${ic('check')}<p>Noch nichts erledigt.</p></div>`;
   }
-  return { title: 'Aufgaben', body: h };
+  return { title: 'Aufgaben', back: '/inhalte', body: h };
 }
 function todoModal(id) {
   const t = byId('todos', id); if (!t) return;
@@ -1300,6 +1448,55 @@ function todoModal(id) {
   });
 }
 
+/* ---------- Ansicht: Notizen (schnelle Einzel-Notizen, später zuordbar) ---------- */
+function noteRow(n) {
+  const f = byId('fields', n.fieldId), d = byId('docs', n.docId);
+  const first = (n.text || '').split('\n')[0] || '(leer)';
+  return `<div class="row" data-a="note-edit" data-id="${n.id}"><span class="ico">${ic('note')}</span>
+    <span class="grow"><b>${esc(first)}</b><small>${esc([f ? f.name : '', d ? d.title : '', fmtDateTime(n.createdAt)].filter(Boolean).join(' · '))}</small></span>
+    ${spTag(noteSpace(n))}</div>`;
+}
+function vNotizen() {
+  const list = notesOfFilter(UI.filter).sort((a, b) => b.createdAt - a.createdAt);
+  let h = spaceSwitcher();
+  h += `<form class="quick" data-a-submit="note-quick"><input class="inp" name="t" placeholder="Schnelle Notiz eintragen …" autocomplete="off" aria-label="Neue Notiz"><button class="btn primary" aria-label="Notiz speichern">${ic('plus')}</button></form>`;
+  h += list.length ? `<div class="card">${list.map(noteRow).join('')}</div>`
+    : `<div class="card empty">${ic('note')}<p>Noch keine Notizen. Trage oben schnell etwas ein – du kannst es jederzeit später einem Lernfeld, einer Kategorie oder einer Unterlage zuordnen.</p></div>`;
+  return { title: 'Notizen', back: '/inhalte', body: h };
+}
+function noteModal(id) {
+  const n = byId('notes', id); if (!n) return;
+  const sp = noteSpace(n);
+  return askModal(`<h3>Notiz</h3><form>
+    <textarea class="inp autogrow" name="text" data-min="60" placeholder="Notiztext …">\n${esc(n.text)}</textarea>
+    <label class="lbl">Bereich</label><div class="seg"><button type="button" data-nsp="schule" class="${sp === 'schule' ? 'on' : ''}">${ic('book')} Schule</button><button type="button" data-nsp="alltag" class="${sp === 'alltag' ? 'on' : ''}">${ic('home')} Alltag</button></div>
+    <div class="two"><div><label class="lbl">${FWORD[sp]}</label><select class="inp" name="field">${fieldOptions(n.fieldId, true, sp)}</select></div>
+    <div><label class="lbl">Unterlage</label><select class="inp" name="doc">${docOptions(n.fieldId, n.docId)}</select></div></div>
+    <div class="mact"><button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    const F = $('form', m); let space = sp === 'alltag' ? 'alltag' : 'schule';
+    autoGrow($('textarea', m));
+    $$('[data-nsp]', m).forEach(b => b.onclick = () => {
+      space = b.dataset.nsp; $$('[data-nsp]', m).forEach(x => x.classList.toggle('on', x === b));
+      F.field.innerHTML = fieldOptions(null, true, space); F.doc.innerHTML = docOptions(null, null);
+    });
+    F.field.onchange = () => { F.doc.innerHTML = docOptions(F.field.value, null); };
+    $('[data-del]', m).onclick = () => {
+      done(null); del('notes', n); render();
+      toast('Notiz gelöscht', '', { label: 'Rückgängig', fn: () => { n.deleted = false; touch('notes', n); render(); } });
+    };
+    F.onsubmit = e => {
+      e.preventDefault();
+      const text = F.text.value.trim(); if (!text) { F.text.focus(); return; }
+      n.text = text; n.space = space; n.fieldId = F.field.value || null;
+      const dd = F.doc.value ? byId('docs', F.doc.value) : null;
+      n.docId = dd && dd.fieldId === n.fieldId ? dd.id : null;
+      touch('notes', n); done(true); render();
+    };
+    setTimeout(() => { F.text.focus(); }, 30);
+  });
+}
+
 /* ---------- Ansicht: Suche ---------- */
 function snippet(text, q) {
   const i = (text || '').toLowerCase().indexOf(q); if (i < 0) return '';
@@ -1309,7 +1506,7 @@ function snippet(text, q) {
 const spTag = sp => `<span class="tag space-${sp}">${SPACES[sp].label}</span>`;
 function searchHTML(raw) {
   const q = raw.trim().toLowerCase();
-  if (q.length < 2) return `<p class="hint">Durchsucht Unterlagen (Titel, Notizen, Tags, Dateinamen, Beschriftungen), Lernfelder/Kategorien, Aufgaben, Arbeiten und Termine – in Schule und Alltag.</p>`;
+  if (q.length < 2) return `<p class="hint">Durchsucht Unterlagen (Titel, Notizen, Tags, Dateinamen, Beschriftungen), Lernfelder/Kategorien, Aufgaben, Notizen, Arbeiten und Termine – in Schule und Alltag.</p>`;
   let h = '';
   const docs = live('docs').filter(d => docHay(d).includes(q)).sort((a, b) => b.updatedAt - a.updatedAt);
   if (docs.length) h += `<div class="grp">Unterlagen · ${docs.length}</div><div class="card">${docs.map(d => {
@@ -1322,6 +1519,8 @@ function searchHTML(raw) {
     ${ys.map(y => `<a class="row" href="#/y/${y.id}"><span class="ico">${ic('book')}</span><span class="grow"><b>${esc(y.name)}</b>${snippet(y.note, q)}</span></a>`).join('')}</div>`;
   const ts = live('todos').filter(t => (t.title + ' ' + (t.note || '') + ' ' + (t.subs || []).map(s => s.t).join(' ')).toLowerCase().includes(q));
   if (ts.length) h += `<div class="grp">Aufgaben · ${ts.length}</div><div class="card">${ts.map(t => todoRow(t, { tag: spTag(todoSpace(t)) })).join('')}</div>`;
+  const ns = live('notes').filter(n => (n.text || '').toLowerCase().includes(q));
+  if (ns.length) h += `<div class="grp">Notizen · ${ns.length}</div><div class="card">${ns.map(noteRow).join('')}</div>`;
   const es = live('exams').filter(e => (e.title + ' ' + (e.note || '')).toLowerCase().includes(q));
   if (es.length) h += `<div class="grp">Arbeiten · ${es.length}</div><div class="card">${es.map(examRow).join('')}</div>`;
   const evs = live('events').filter(e => (e.title + ' ' + (e.note || '')).toLowerCase().includes(q));
@@ -1353,6 +1552,11 @@ function vSettings() {
       : Notification.permission === 'denied' ? `<p class="hint">Im Browser blockiert. Erlaube Benachrichtigungen für diese Seite in den Website-Einstellungen deines Browsers, um sie wieder zu nutzen.</p>`
       : `<button class="btn primary" data-a="notif-enable">${ic('bell')} Benachrichtigungen aktivieren</button>`}
     </div></section>
+  <section><div class="sec-h"><h2>Kalender</h2></div><div class="card pad">
+    <label class="lbl">Bundesland (für Feiertage)</label>
+    <select class="inp" id="s-bundesland">${HOLIDAY_STATES.map(([v, l]) => `<option value="${v}" ${((c.bundesland || '') === v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+    <p class="hint">Feiertage werden dann automatisch im Monatskalender markiert und in der Tagesübersicht angezeigt.</p>
+    <div class="actions"><button class="btn primary" data-a="bundesland-save">${ic('check')} Speichern</button></div></div></section>
   <section><div class="sec-h"><h2>Synchronisation</h2><span id="syncstat">${syncPill()}</span></div><div class="card pad">
     <p style="margin:0 0 4px" class="muted">Damit Handy und Laptop denselben Stand haben, legt LifeVault alles in einem <b>privaten</b> GitHub-Repository ab.
     Die App arbeitet immer zuerst lokal und funktioniert dadurch auch offline; abgeglichen wird, sobald du online bist.</p>
@@ -1474,7 +1678,7 @@ const ACT = {
     const y = byId('years', el.dataset.id); if (!y) return;
     menuModal([
       { label: 'Umbenennen', icon: 'edit', fn: async () => { const v = await promptModal({ title: 'Schuljahr umbenennen', value: y.name }); if (v) { y.name = v; touch('years', y); render(); } } },
-      { label: 'Schuljahr löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${y.name}“ löschen?`, text: 'Alle Lernfelder, Unterlagen, Fotos und Notizen darin werden gelöscht.' })) { del('years', y); go('/'); } } }]);
+      { label: 'Schuljahr löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${y.name}“ löschen?`, text: 'Alle Lernfelder, Unterlagen, Fotos und Notizen darin werden gelöscht.' })) { del('years', y); go('/inhalte'); } } }]);
   },
   'field-new': async el => {
     const yid = el.dataset.y || null, sp = yid ? 'schule' : 'alltag';
@@ -1487,9 +1691,10 @@ const ACT = {
     const sp = spaceOfField(f), fw = FWORD[sp];
     menuModal([
       { label: 'Umbenennen / Farbe ändern', icon: 'edit', fn: async () => { const r = await fieldModal({ title: fw + ' bearbeiten', name: f.name, color: f.color, placeholder: sp === 'schule' ? 'z. B. Lernfeld 3 – Kundenberatung' : 'z. B. Haushalt, Finanzen, Auto' }); if (r) { f.name = r.name; f.color = r.color; touch('fields', f); render(); } } },
-      { label: fw + ' löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${f.name}“ löschen?`, text: `Alle Unterlagen, Fotos und Notizen in diesem ${fw} werden gelöscht. Aufgaben bleiben erhalten.` })) { const y = yearOfField(f); del('fields', f); go(y ? '/y/' + y.id : '/'); } } }]);
+      { label: fw + ' löschen', icon: 'trash', danger: true, fn: async () => { if (await confirmModal({ title: `„${f.name}“ löschen?`, text: `Alle Unterlagen, Fotos und Notizen in diesem ${fw} werden gelöscht. Aufgaben bleiben erhalten.` })) { const y = yearOfField(f); del('fields', f); go(y ? '/y/' + y.id : '/inhalte'); } } }]);
   },
-  'space-switch': el => { setSpace(el.dataset.v); render(); },
+  'space-switch': el => { setFilter(el.dataset.v); render(); },
+  'note-edit': el => noteModal(el.dataset.id),
   'field-quick-new': async el => {
     const f = await quickCreateField(el.dataset.space); if (!f) return;
     const form = el.closest('form'); if (!form) return;
@@ -1507,7 +1712,7 @@ const ACT = {
   'doc-menu': el => {
     const d = byId('docs', el.dataset.id); if (!d) return;
     menuModal([{ label: 'Unterlage löschen', icon: 'trash', danger: true, fn: async () => {
-      if (await confirmModal({ title: `„${d.title || 'Ohne Titel'}“ löschen?`, text: 'Dateien, Fotos und Notizen dazu werden ebenfalls gelöscht.' })) { const fid = d.fieldId; del('docs', d); go(fid ? '/f/' + fid : '/'); }
+      if (await confirmModal({ title: `„${d.title || 'Ohne Titel'}“ löschen?`, text: 'Dateien, Fotos und Notizen dazu werden ebenfalls gelöscht.' })) { const fid = d.fieldId; del('docs', d); go(fid ? '/f/' + fid : '/inhalte'); }
     } }]);
   },
   'tag-del': el => { const d = byId('docs', el.dataset.id); if (!d) return; d.tags = (d.tags || []).filter(t => t !== el.dataset.t); touch('docs', d); refreshTagBox(d.id, false); },
@@ -1535,8 +1740,12 @@ const ACT = {
   'todo-toggle': el => { const t = byId('todos', el.dataset.id); if (!t) return; t.done = !t.done; t.doneAt = t.done ? now() : null; touch('todos', t); render(); },
   'todo-edit': el => todoModal(el.dataset.id),
   'todo-clear': async () => {
-    const list = todosOfSpace(UI.space).filter(t => t.done && (!UI.tfield || t.fieldId === UI.tfield));
+    const list = todosOfFilter(UI.filter).filter(t => t.done && (!UI.tfield || t.fieldId === UI.tfield));
     if (list.length && await confirmModal({ title: `${list.length} erledigte Aufgaben löschen?` })) { list.forEach(t => del('todos', t)); render(); }
+  },
+  'bundesland-save': () => {
+    const c = cfg(); c.bundesland = $('#s-bundesland').value || ''; saveCfg(c);
+    toast('Gespeichert'); render();
   },
   'sync-save': async () => {
     const repo = $('#s-repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
@@ -1586,6 +1795,11 @@ const SUB = {
   'todo-quick': form => {
     const title = form.t.value.trim(); if (!title) { form.t.focus(); return; }
     add('todos', { title, due: form.due.value || '', prio: 1, done: false, note: '', subs: [], fieldId: form.dataset.f || null, docId: form.dataset.d || null, space: form.dataset.sp || 'schule' });
+    render(); const i = $('.quick input[name=t]'); if (i) i.focus();
+  },
+  'note-quick': form => {
+    const text = form.t.value.trim(); if (!text) { form.t.focus(); return; }
+    add('notes', { text, space: UI.filter !== 'alle' ? UI.filter : 'schule', fieldId: null, docId: null });
     render(); const i = $('.quick input[name=t]'); if (i) i.focus();
   }
 };
@@ -1657,6 +1871,7 @@ async function init() {
   catch (e) { document.body.innerHTML = '<p style="padding:24px;font-family:sans-serif">Der lokale Speicher (IndexedDB) ist nicht verfügbar. Bitte in einem normalen Browser-Tab (nicht im privaten Modus) öffnen.</p>'; return; }
   for (const k of COLL) S[k] = await idbAll(k);
   (await idb('blobs', 'readonly', o => o.getAllKeys())).forEach(k => { if (typeof k === 'string' && !k.startsWith('t:')) HAVE.add(k); });
+  dedupeTurnusTypes();   // repariert doppelte Turnus-Arten aus früheren Geräte-Ersteinrichtungen vor dem ersten Sync
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   wire();
   if (configured()) setSync('idle', '');
@@ -1676,16 +1891,19 @@ init();
    ===================================================================== */
 function ensureTurnusTypes() {
   if (live('turnusTypes').length) return;
-  add('turnusTypes', { name: 'Berufsschule', color: '#4f46e5', order: 0 });
-  add('turnusTypes', { name: 'Betrieb', color: '#10b981', order: 1 });
+  add('turnusTypes', { name: 'Berufsschule', color: '#4f46e5', order: 0, days: [1, 2, 3, 4, 5] });
+  add('turnusTypes', { name: 'Betrieb', color: '#10b981', order: 1, days: [1, 2, 3, 4] });
 }
 const turnusTypesSorted = () => live('turnusTypes').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+const WEEKDAYS = [['1', 'Mo'], ['2', 'Di'], ['3', 'Mi'], ['4', 'Do'], ['5', 'Fr'], ['6', 'Sa'], ['7', 'So']];
 
 /* ---------- Erinnerung: gemeinsame Felder für Aufgaben-, Arbeiten- und Termin-Dialog ---------- */
 function remindFields(item) {
-  return `<div class="two"><div><select class="inp" name="remind" aria-label="Erinnerung">${REMIND_OPTS.map(([v, l]) => `<option value="${v}" ${String(item && item.remind != null ? item.remind : '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+  const on = item && item.remind != null;
+  return `<details class="more" ${on ? 'open' : ''}><summary>${ic('bell')} Erinnerung${on ? '' : ' (optional)'}</summary>
+    <div class="two"><div><select class="inp" name="remind" aria-label="Erinnerung">${REMIND_OPTS.map(([v, l]) => `<option value="${v}" ${String(item && item.remind != null ? item.remind : '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div><input type="time" class="inp" name="notifyTime" aria-label="Uhrzeit" value="${esc(item && item.notifyTime ? item.notifyTime : '08:00')}"></div></div>
-    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Einstellungen aktivieren.</p>`;
+    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Einstellungen aktivieren.</p></details>`;
 }
 function remindProps(F) {
   const remind = F.remind.value === '' ? null : +F.remind.value;
@@ -1770,14 +1988,29 @@ function eventModal(id, preset = {}) {
 }
 
 /* ---------- Turnus-Arten verwalten ---------- */
+function daysLabel(days) {
+  const d = (days && days.length ? days : [1, 2, 3, 4, 5]).slice().sort((a, b) => a - b);
+  const names = Object.fromEntries(WEEKDAYS);
+  if (d.length === 7) return 'Jeden Tag';
+  // zusammenhängende Blöcke zu "Mo–Fr" zusammenfassen
+  const parts = []; let start = d[0], prev = d[0];
+  for (let i = 1; i <= d.length; i++) {
+    const v = d[i];
+    if (v === prev + 1) { prev = v; continue; }
+    parts.push(start === prev ? names[start] : `${names[start]}–${names[prev]}`);
+    start = prev = v;
+  }
+  return parts.join(', ');
+}
 function typesModalBody() {
   const types = turnusTypesSorted();
-  return `<h3>Turnus-Arten</h3>${types.length ? `<div class="menu" id="tlist">${types.map(t => `
+  return `<h3>Turnus-Arten</h3><p class="hint" style="margin-top:0">Jede Art hat ein Wochenmuster (z. B. Mo–Fr), das automatisch gilt, sobald du sie einer Woche zuweist. Einzelne Tage lassen sich im Kalender trotzdem abweichend markieren.</p>
+    ${types.length ? `<div id="tlist">${types.map(t => `
     <div class="row" style="cursor:default"><span class="ico" style="background:${t.color};color:#fff">${ic('folder')}</span>
-      <span class="grow"><b>${esc(t.name)}</b></span>
+      <span class="grow"><b>${esc(t.name)}</b><small>${esc(daysLabel(t.days))}</small></span>
       <button class="icon-btn" data-a="tt-edit" data-id="${t.id}" aria-label="Bearbeiten">${ic('edit')}</button>
       <button class="icon-btn" data-a="tt-del" data-id="${t.id}" aria-label="Löschen">${ic('trash')}</button></div>`).join('')}</div>`
-    : `<p class="hint">Noch keine Art angelegt, z. B. „Berufsschule“ und „Betrieb“.</p>`}
+    : `<p class="hint">Noch keine Art angelegt, z. B. „Berufsschule“, „Betrieb“ oder „Urlaub“.</p>`}
     <div class="mact" style="justify-content:space-between"><button type="button" class="btn" data-a="tt-add">${ic('plus')} Neue Art</button><button type="button" class="btn primary" data-close>Fertig</button></div>`;
 }
 function turnusTypesModal() { return askModal(typesModalBody(), () => {}); }
@@ -1787,17 +2020,38 @@ function refreshTypesModal() {
   // innerHTML ersetzt die Knoten, also die generische data-close-Bindung von askModal() erneuern
   $$('[data-close]', modal).forEach(b => b.onclick = () => modal._done(null));
 }
+function turnusTypeModal({ title, name = '', color = COLORS[0], days = [1, 2, 3, 4, 5], ok = 'Speichern' }) {
+  return askModal(`<h3>${esc(title)}</h3><form><label class="lbl">Name</label>
+    <input class="inp" name="v" value="${esc(name)}" placeholder="z. B. Berufsschule, Betrieb, Urlaub" autocomplete="off">
+    <label class="lbl">Farbe</label><div class="colors">${COLORS.map(c => `<button type="button" data-c="${c}" style="background:${c}" class="${c === color ? 'on' : ''}" aria-label="Farbe"></button>`).join('')}</div>
+    <label class="lbl">Wochenmuster</label><div class="chips" id="wdchips">${WEEKDAYS.map(([v, l]) => `<button type="button" class="chip btnlike ${days.includes(+v) ? 'on' : ''}" data-wd="${v}">${l}</button>`).join('')}</div>
+    <p class="hint" style="margin-top:6px">Gilt automatisch, sobald du diese Art einer Woche zuweist – z. B. Mo–Fr für Berufsschule, Mo–Do für Betrieb. Einzelne Tage kannst du später im Kalender trotzdem abweichend markieren.</p>
+    <div class="mact"><button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">${esc(ok)}</button></div></form>`,
+  (m, done) => {
+    let col = color, dys = days.slice(); const inp = $('input', m); setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    $$('[data-c]', m).forEach(b => b.onclick = () => { col = b.dataset.c; $$('[data-c]', m).forEach(x => x.classList.toggle('on', x === b)); });
+    $$('[data-wd]', m).forEach(b => b.onclick = () => {
+      const v = +b.dataset.wd;
+      if (dys.includes(v)) { if (dys.length > 1) dys = dys.filter(x => x !== v); } else dys.push(v);
+      b.classList.toggle('on', dys.includes(v));
+    });
+    $('form', m).onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (!v) { inp.focus(); return; } done({ name: v, color: col, days: dys.sort((a, b) => a - b) }); };
+  });
+}
 
 /* ---------- Tages-Detail ---------- */
 function dayModal(dy) {
-  const exams = examsOnDay(dy), events = eventsOnDay(dy), wk = weekKeyOf(dy), tw = byId('turnusWeeks', wk), tt = tw ? byId('turnusTypes', tw.typeId) : null;
+  const exams = examsOnDay(dy), events = eventsOnDay(dy), tt = effectiveDayType(dy), ov = dayOverride(dy), hol = holidayOn(dy), weekend = isWeekend(dy);
   let body = '';
-  if (tt) body += `<p class="hint" style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${tt.color};display:inline-block"></span>${esc(tt.name)} · KW ${isoWeekNum(parseYmd(dy))}</p>`;
-  if (exams.length) body += `<div class="grp" style="margin-top:${tt ? 10 : 4}px">Arbeiten</div><div class="card">${exams.map(examRow).join('')}</div>`;
+  if (tt || hol || weekend || ov) body += `<div class="chips" style="margin:2px 0 10px">
+    ${tt ? `<span class="chip" style="background:${hexA(tt.color, .18)};color:${tt.color}">${esc(tt.name)}${ov ? ' · manuell' : ''}</span>` : (ov ? `<span class="chip">Frei (manuell)</span>` : '')}
+    ${hol ? `<span class="chip">${ic('cal')} ${esc(hol)}</span>` : (weekend ? `<span class="chip">Wochenende</span>` : '')}</div>`;
+  if (exams.length) body += `<div class="grp" style="margin-top:4px">Arbeiten</div><div class="card">${exams.map(examRow).join('')}</div>`;
   if (events.length) body += `<div class="grp">Termine</div><div class="card">${events.map(e => eventRow(e, dy)).join('')}</div>`;
   if (!exams.length && !events.length) body += `<p class="hint">Nichts an diesem Tag.</p>`;
   return askModal(`<h3>${esc(parseYmd(dy).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h3>${body}
     <div class="mact"><button type="button" class="btn ghost" data-close>Schließen</button>
+      <button type="button" class="btn" data-a="day-type" data-date="${dy}">${ic('folder')} Art für diesen Tag</button>
       <button type="button" class="btn" data-a="exam-new" data-date="${dy}">${ic('warn')} Arbeit</button>
       <button type="button" class="btn primary" data-a="event-new" data-date="${dy}">${ic('cal')} Termin</button></div>`,
     () => {});
@@ -1821,8 +2075,7 @@ function vCalMonth() {
   const rows = []; for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
   const monthLabel = rd.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
   const types = new Map(live('turnusTypes').map(t => [t.id, t]));
-  const weeks = new Map(live('turnusWeeks').map(w => [w.id, w]));
-  const t0 = today(), cf = UI.calFilter || 'alle';
+  const t0 = today(), cf = UI.calFilter || 'alle', bl = (typeof cfg === 'function' ? cfg().bundesland : '') || '';
   let h = `<div class="calnav"><button class="icon-btn" data-a="cal-prev" aria-label="Voriger Monat">${ic('chevl')}</button>
     <b>${esc(monthLabel)}</b><button class="icon-btn" data-a="cal-next" aria-label="Nächster Monat">${ic('chevr')}</button>
     <button class="btn small ghost" data-a="cal-today" style="margin-left:auto">Heute</button></div>`;
@@ -1830,24 +2083,28 @@ function vCalMonth() {
     <button class="chip btnlike ${cf === 'alle' ? 'on' : ''}" data-a="calf" data-v="alle">Alle</button>
     <button class="chip btnlike ${cf === 'schule' ? 'on' : ''}" data-a="calf" data-v="schule">${ic('book')} Schule</button>
     <button class="chip btnlike ${cf === 'alltag' ? 'on' : ''}" data-a="calf" data-v="alltag">${ic('home')} Alltag</button></div>`;
+  if (!bl) h += `<p class="hint" style="margin:0 2px 10px">Feiertage automatisch anzeigen: <a href="#/settings">Bundesland in den Einstellungen wählen</a>.</p>`;
   h += `<div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
   rows.forEach(row => {
-    const wk = ymd(row[0]), tw = weeks.get(wk), tt = tw ? types.get(tw.typeId) : null;
+    const wk = ymd(row[0]);
     h += `<button class="cal-wk" data-a="cal-week" data-week="${wk}" aria-label="Turnus für KW ${isoWeekNum(row[0])} wählen">${isoWeekNum(row[0])}</button>`;
     row.forEach(d => {
-      const dy = ymd(d), inMonth = d.getMonth() === mo, isToday = dy === t0;
+      const dy = ymd(d), inMonth = d.getMonth() === mo, isToday = dy === t0, weekend = isWeekend(dy), hol = holidayOn(dy);
+      const tt = effectiveDayType(dy), ov = dayOverride(dy);
       const dayExams = cf === 'alltag' ? [] : live('exams').filter(e => e.date === dy);
       const dayEvents = cf === 'schule' ? [] : eventsOnDay(dy);
       const total = dayExams.length + dayEvents.length;
       const dots = [...dayExams.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="exam" style="background:${f ? f.color : 'var(--accent)'}"></i>`; }),
         ...dayEvents.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="event" style="background:${f ? f.color : '#0ea5e9'}"></i>`; })].slice(0, 4).join('');
-      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''}" style="${tt ? `background:${hexA(tt.color, .16)}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(fmtDate(dy))}${total ? ', ' + total + ' Eintrag/Einträge' : ''}">
-        <span class="dn">${d.getDate()}</span>
+      const bg = tt ? hexA(tt.color, .16) : (hol ? 'var(--accent-soft)' : (weekend ? 'var(--bg)' : ''));
+      const label = [fmtDate(dy), total ? total + ' Eintrag/Einträge' : '', tt ? tt.name : '', hol || ''].filter(Boolean).join(', ');
+      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''}" style="${bg ? `background:${bg}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}">
+        <span class="dn">${d.getDate()}${hol ? '<i class="holidot"></i>' : ''}</span>
         ${total ? `<span class="dots">${dots}</span>` : ''}</button>`;
     });
   });
   h += `</div>`;
-  if (types.size) h += `<div class="chips" style="margin-top:14px">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span class="chip" style="background:${hexA(t.color, .18)};color:${t.color}">${esc(t.name)}</span>`).join('')}</div>`;
+  if (types.size) h += `<div class="chips" style="margin-top:14px">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span class="chip" style="background:${hexA(t.color, .18)};color:${t.color}">${esc(t.name)} · ${esc(daysLabel(t.days))}</span>`).join('')}</div>`;
   h += `<button class="fab" data-a="cal-new">${ic('plus')} Eintrag</button>`;
   return h;
 }
@@ -1885,6 +2142,13 @@ Object.assign(ACT, {
     menuModal([...types.map(t => ({ label: t.name + (cur && cur.typeId === t.id ? ' ✓' : ''), icon: 'folder', fn: () => { setTurnusWeek(wk, t.id); render(); } })),
       { label: 'Keine Angabe', icon: 'x', fn: () => { setTurnusWeek(wk, null); render(); } }]);
   },
+  'day-type': el => {
+    const dy = el.dataset.date, types = turnusTypesSorted(), ov = dayOverride(dy), eff = effectiveDayType(dy);
+    const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
+    menuModal([...types.map(t => ({ label: t.name + (eff && eff.id === t.id ? ' ✓' : ''), icon: 'folder', fn: () => { setDayOverride(dy, t.id); render(); dayModal(dy); } })),
+      { label: 'Frei (nur dieser Tag)', icon: 'x', fn: () => { setDayOverride(dy, null); render(); dayModal(dy); } },
+      ...(ov ? [{ label: 'Ausnahme entfernen (Wochenmuster nutzen)', icon: 'refresh', fn: () => { setDayOverride(dy, 'auto'); render(); dayModal(dy); } }] : [])]);
+  },
   'exam-new': el => {
     const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
     examModal(null, { date: el.dataset.date });
@@ -1912,21 +2176,22 @@ Object.assign(ACT, {
   'tw-manage': () => turnusTypesModal(),
   'turnus-set': el => { const wk = el.dataset.week, tid = el.dataset.t, cur = byId('turnusWeeks', wk); setTurnusWeek(wk, cur && cur.typeId === tid ? null : tid); render(); },
   'tt-add': async () => {
-    const r = await fieldModal({ title: 'Neue Turnus-Art', color: COLORS[live('turnusTypes').length % COLORS.length], ok: 'Anlegen' }); if (!r) return;
-    add('turnusTypes', { name: r.name, color: r.color, order: live('turnusTypes').length });
+    const r = await turnusTypeModal({ title: 'Neue Turnus-Art', color: COLORS[live('turnusTypes').length % COLORS.length], ok: 'Anlegen' }); if (!r) return;
+    add('turnusTypes', { name: r.name, color: r.color, days: r.days, order: live('turnusTypes').length });
     refreshTypesModal(); render();
   },
   'tt-edit': async el => {
     const t = byId('turnusTypes', el.dataset.id); if (!t) return;
-    const r = await fieldModal({ title: 'Art bearbeiten', name: t.name, color: t.color }); if (!r) return;
-    t.name = r.name; t.color = r.color; touch('turnusTypes', t);
+    const r = await turnusTypeModal({ title: 'Art bearbeiten', name: t.name, color: t.color, days: t.days }); if (!r) return;
+    t.name = r.name; t.color = r.color; t.days = r.days; touch('turnusTypes', t);
     refreshTypesModal(); render();
   },
   'tt-del': async el => {
     const t = byId('turnusTypes', el.dataset.id); if (!t) return;
-    if (await confirmModal({ title: `„${t.name}“ löschen?`, text: 'Wochen mit dieser Art verlieren die Zuordnung.' })) {
+    if (await confirmModal({ title: `„${t.name}“ löschen?`, text: 'Wochen und einzelne Tage mit dieser Art verlieren die Zuordnung.' })) {
       del('turnusTypes', t);
       live('turnusWeeks').filter(w => w.typeId === t.id).forEach(w => { w.typeId = null; w.deleted = true; touch('turnusWeeks', w); });
+      live('turnusDays').filter(dd => dd.typeId === t.id).forEach(dd => { dd.deleted = true; touch('turnusDays', dd); });
       refreshTypesModal(); render();
     }
   }
