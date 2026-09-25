@@ -1182,18 +1182,27 @@ function render(nav = false) {
   renderNav(a); updateSyncUI(); afterRender();
   if (nav) window.scrollTo(0, 0);
 }
+const NAV_ITEMS = [
+  ['/', 'home', 'Start', ['']],
+  ['/inhalte', 'folder', 'Inhalte', ['inhalte', 'y', 'f', 'd', 'todo']],
+  ['/notizen', 'note', 'Notizen', ['notizen']],
+  ['/cal', 'cal', 'Kalender', ['cal']],
+  ['/search', 'search', 'Suche', ['search']],
+  ['/settings', 'sliders', 'Einstellungen', ['settings']]
+];
 function renderNav(a) {
   const over = todosOpen().filter(t => t.due && t.due <= today()).length, soon = examSoonCount() + eventSoonCount();
-  const items = [
-    ['/', 'home', 'Start', ['']],
-    ['/inhalte', 'folder', 'Inhalte', ['inhalte', 'y', 'f', 'd']],
-    ['/notizen', 'note', 'Notizen', ['notizen']],
-    ['/cal', 'cal', 'Kalender', ['cal']],
-    ['/search', 'search', 'Suche', ['search']],
-    ['/settings', 'sliders', 'Einstellungen', ['settings']]
-  ];
-  $('#nav').innerHTML = `<div class="brand"><span>${ic('folder')}</span>LifeVault</div>` + items.map(([h, i, l, keys]) =>
+  $('#nav').innerHTML = `<div class="brand"><span>${ic('folder')}</span>LifeVault</div>` + NAV_ITEMS.map(([h, i, l, keys]) =>
     `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
+}
+/* Wischen zwischen den Kategorien der Navigationsleiste */
+function navSwipe(dir) {
+  const a = (location.hash.slice(1) || '/').split('/').filter(Boolean)[0] || '';
+  let idx = NAV_ITEMS.findIndex(([, , , keys]) => keys.includes(a));
+  if (idx === -1) idx = 0;
+  const next = idx + dir;
+  if (next < 0 || next >= NAV_ITEMS.length) return;
+  go(NAV_ITEMS[next][0]);
 }
 function autoGrow(el) { const min = el.dataset.min !== undefined ? +el.dataset.min : 96; el.style.height = 'auto'; el.style.height = Math.max(min, el.scrollHeight + 2) + 'px'; }
 function afterRender() {
@@ -1320,11 +1329,12 @@ function vField(id) {
   if (UI.fid !== id) { UI.fid = id; UI.ftab = 'docs'; UI.dkind = 'all'; UI.dq = ''; }
   const sp = spaceOfField(f);
   const y = yearOfField(f), docs = docsOfField(id), todos = live('todos').filter(t => t.fieldId === id);
+  const fieldNotes = live('notes').filter(n => n.fieldId === id).sort((a, b) => b.createdAt - a.createdAt);
   const nOpen = todos.filter(t => !t.done).length;
   let h = `<div class="crumb"><a href="#/inhalte">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}</div>`;
   h += `<div class="tabs">
     <button data-a="ftab" data-v="docs" class="${UI.ftab === 'docs' ? 'on' : ''}">${ic('file')} Unterlagen <span class="n">${docs.length}</span></button>
-    <button data-a="ftab" data-v="notes" class="${UI.ftab === 'notes' ? 'on' : ''}">${ic('note')} Notizen</button>
+    <button data-a="ftab" data-v="notes" class="${UI.ftab === 'notes' ? 'on' : ''}">${ic('note')} Notizen ${fieldNotes.length ? `<span class="n">${fieldNotes.length}</span>` : ''}</button>
     <button data-a="ftab" data-v="todos" class="${UI.ftab === 'todos' ? 'on' : ''}">${ic('check')} Aufgaben ${nOpen ? `<span class="n">${nOpen}</span>` : ''}</button></div>`;
   if (UI.ftab === 'docs') {
     const nk = k => docs.filter(d => d.kind === k).length;
@@ -1335,7 +1345,10 @@ function vField(id) {
       <div id="dlist">${docListHTML(docs)}</div>
       <button class="fab" data-a="doc-new" data-f="${id}">${ic('plus')} Unterlage</button>`;
   } else if (UI.ftab === 'notes') {
-    h += `<p class="hint" style="margin:0 2px 8px">Gesamtnotizen zu „${esc(f.name)}“ – für alles, was nicht zu einer einzelnen Unterlage gehört.</p>${noteBox(`fields.${id}.note`, f.note, 'Zusammenfassung, Prüfungsthemen, offene Fragen …')}`;
+    h += fieldNotes.length
+      ? `<div class="card" style="margin-bottom:20px">${fieldNotes.map(n => noteRow(n, { noField: true })).join('')}</div>`
+      : `<p class="hint" style="margin:0 2px 16px">Noch keine zugeordneten Notizen. Trage unter „Notizen“ schnell etwas ein und ordne es dort diesem ${FWORD[sp]} zu – es taucht dann hier auf.</p>`;
+    h += `<p class="hint" style="margin:0 2px 8px">Allgemeine Notiz zu „${esc(f.name)}“ – für alles, was nicht zu einer einzelnen Unterlage gehört.</p>${noteBox(`fields.${id}.note`, f.note, 'Zusammenfassung, Prüfungsthemen, offene Fragen …')}`;
   } else {
     h += todoSection({ fieldId: id }, todos, { noField: true });
   }
@@ -1479,11 +1492,12 @@ function todoModal(id) {
 }
 
 /* ---------- Ansicht: Notizen (schnelle Einzel-Notizen, später zuordbar) ---------- */
-function noteRow(n) {
+function noteRow(n, opt = {}) {
   const f = byId('fields', n.fieldId), d = byId('docs', n.docId);
   const first = (n.text || '').split('\n')[0] || '(leer)';
+  const sub = [opt.noField ? '' : (f ? f.name : ''), d ? d.title : '', fmtDateTime(n.createdAt)].filter(Boolean).join(' · ');
   return `<div class="row" data-a="note-edit" data-id="${n.id}"><span class="ico">${ic('note')}</span>
-    <span class="grow"><b>${esc(first)}</b><small>${esc([f ? f.name : '', d ? d.title : '', fmtDateTime(n.createdAt)].filter(Boolean).join(' · '))}</small></span>
+    <span class="grow"><b>${esc(first)}</b><small>${esc(sub)}</small></span>
     ${spTag(noteSpace(n))}</div>`;
 }
 function vNotizen() {
@@ -1874,6 +1888,18 @@ function wire() {
     if (!e.target.closest('#lbst') || $('#lbst').classList.contains('zoom')) return;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  // Navigation per Wischen zwischen den Kategorien der Navigationsleiste
+  let nsx = 0, nsy = 0, nSwiping = false;
+  document.addEventListener('touchstart', e => {
+    const t = e.target;
+    nSwiping = !(LB.open || $$('.modal').length || t.closest('#lbst') || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || !t.closest('#view'));
+    if (nSwiping) { nsx = e.touches[0].clientX; nsy = e.touches[0].clientY; }
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!nSwiping) return; nSwiping = false;
+    const dx = e.changedTouches[0].clientX - nsx, dy = e.changedTouches[0].clientY - nsy;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) navSwipe(dx < 0 ? 1 : -1);
   }, { passive: true });
   // Datei-Eingaben
   $('#in-cam').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'photo'), 'cam'); });
