@@ -24,14 +24,17 @@
   --radius:6px;--radius-s:3px;--shadow:0 1px 0 rgba(24,33,44,.07);
   --font-d:"Bahnschrift","DIN Alternate","DIN 2014","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;
   --hatch:repeating-linear-gradient(135deg,color-mix(in srgb,var(--danger) 30%,transparent) 0 1.5px,transparent 1.5px 6px);
+  /* Hintergrund: Zeichenraster + Lichtverlauf (sehr zurückhaltend) */
+  --bg-top:#eef1f4;--bg-bottom:#dde2e7;--grid:rgba(24,33,44,.05);--grid-major:rgba(24,33,44,.085);--glow:rgba(200,16,46,.06);--glow2:rgba(29,95,170,.06);
   --nav-h:62px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#11161c;--card:#19212a;--bar:rgba(25,33,42,.96);--text:#e4e9ee;--muted:#97a3b0;--line:#2b3540;--line-strong:#4a5663;
+  :root{--bg:#10151b;--card:#1a222c;--bar:rgba(25,33,42,.96);--text:#e4e9ee;--muted:#97a3b0;--line:#2b3540;--line-strong:#4a5663;
     --accent:#6ea6e8;--accent-ink:#0f1419;--accent-soft:#1d2c3d;--danger:#f0626b;--warn:#f0a23b;--ok:#5cc27a;
     --accent2:#4fc1c9;--accent2-ink:#0f1419;--accent2-soft:#143235;--signal-ink:#11161c;
     --brand:#d93a45;--brand-soft:#3a1c22;--brand-edge:#4d0a12;--orange:#fb8c3c;
+    --bg-top:#151d26;--bg-bottom:#0a0d11;--grid:rgba(160,190,220,.055);--grid-major:rgba(160,190,220,.1);--glow:rgba(217,58,69,.14);--glow2:rgba(70,130,200,.11);
     --shadow:0 1px 0 rgba(0,0,0,.35);color-scheme:dark}
 }
 *{box-sizing:border-box}
@@ -39,6 +42,17 @@ html,body{margin:0;min-height:100%}
 body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);
   -webkit-tap-highlight-color:transparent;overflow-x:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
+/* Grund: Lichtverlauf von oben (wie eine Lampe über der Werkbank) mit leichtem rotem Schimmer,
+   darüber ein feines Zeichenraster, das nach unten ausblendet. Beides fest stehend, Inhalte scrollen darüber. */
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+body::before{background:radial-gradient(75% 42% at 100% 6%,var(--glow),transparent 72%),radial-gradient(80% 45% at 0% 100%,var(--glow2),transparent 72%),
+  linear-gradient(180deg,var(--bg-top),var(--bg) 45%,var(--bg-bottom))}
+body::after{background:
+  linear-gradient(var(--grid-major) 1px,transparent 1px) -1px -1px/120px 120px,
+  linear-gradient(90deg,var(--grid-major) 1px,transparent 1px) -1px -1px/120px 120px,
+  linear-gradient(var(--grid) 1px,transparent 1px) -1px -1px/24px 24px,
+  linear-gradient(90deg,var(--grid) 1px,transparent 1px) -1px -1px/24px 24px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.65) 55%,rgba(0,0,0,.3) 100%);mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.65) 55%,rgba(0,0,0,.3) 100%)}
 a{color:var(--accent);text-decoration:none}
 h1,h2,h3{margin:0;line-height:1.25}
 /* DIN für Titel, Zahlen und kurze Beschriftungen */

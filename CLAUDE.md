@@ -22,6 +22,7 @@ Persönliche PWA für Schule und Alltag: Unterlagen (mit Fotos/Dateien), Notizen
 - Schrift: `--font-d` (DIN: Bahnschrift, Roboto Condensed …) für Titel, Zahlen, Schilder und Buttons; Fließtext bleibt Systemschrift. Keine Großbuchstaben-Labels.
 - Kleine Radien (`--radius` 6 px, `--radius-s` 3 px), Linien statt weicher Schatten. Abschnittsköpfe (`.sec-h`) mit dicker Linie darunter.
 - Lernfeld-/Kategorie-Farbe als „Ader“: `.todo.wired` mit `--c`, Feld-Schilder `.tag.fld` mit `--c` (Farbquadrat statt farbiger Fläche).
+- Hintergrund (`body::before`/`::after`, fest stehend): Lichtverlauf `--bg-top` → `--bg-bottom`, roter Schimmer oben rechts (`--glow`), blauer unten links (`--glow2`), feines Zeichenraster (`--grid`, `--grid-major`), das nach unten ausblendet. Benny nutzt den Dunkelmodus; dort zuerst prüfen. Dezent halten, Karten müssen klar davor stehen.
 - Freie Tage (Feiertage) schraffiert über `--hatch`. Turnus-Arten als Farbband (Startseite) bzw. Tönung (Monatskalender).
 - Umschalter (`.seg`, `.tabs`, `.chip.btnlike`) wie Wahlschalter: aktive Stellung in Tusche gefüllt.
 
