@@ -49,6 +49,8 @@ small,.muted{color:var(--muted)}
 .icon-btn:hover{background:var(--accent-soft)}
 .icon-btn .dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid var(--card)}
 .icon-btn.sync.spin .ic{animation:spin 1s linear infinite}
+.icon-btn.busy{pointer-events:none;opacity:.55}
+.icon-btn.busy .ic{animation:spin 1s linear infinite}
 .icon-btn.sync.err{color:var(--danger)}
 .icon-btn.sync.off{color:var(--muted)}
 .icon-btn.sync.ok{color:var(--ok)}
@@ -155,6 +157,8 @@ label.lbl{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margi
 .ph{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--accent-soft);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .pn{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;font-size:.75rem;border-radius:8px;padding:1px 8px;font-weight:650}
+.ph .ocrd{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;border-radius:8px;padding:2px;display:flex}
+.ph .ocrd .ic{width:13px;height:13px}
 .ph .cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:.72rem;padding:16px 6px 5px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ph.add{border:2px dashed var(--line);background:transparent;flex-direction:column;gap:6px;font-weight:600;font-size:.85rem}
 .ph.add:hover{border-color:var(--accent);color:var(--accent)}
@@ -293,6 +297,27 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.
 .tw-label b,.tw-label small{display:block}
 .tw-chips{display:flex;flex-wrap:wrap;gap:6px}
 @media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.74rem}.calnav b{font-size:.92rem}}
+
+/* ---------- Übersicht im Lernfeld / Noten ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:10px 11px 9px;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0;color:var(--text)}
+button.stat{cursor:pointer}
+button.stat:hover{border-color:var(--accent)}
+.stat small{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat b{font-size:1.12rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-good{--tone:var(--ok)}.g-ok{--tone:var(--accent)}.g-warn{--tone:var(--warn)}.g-bad{--tone:var(--danger)}
+.stat[class*=" g-"] b{color:var(--tone)}
+.gchip{flex:none;min-width:46px;height:34px;padding:0 8px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:750;font-size:1rem;
+  color:var(--tone,var(--text));background:color-mix(in srgb,var(--tone,var(--muted)) 14%,transparent)}
+.favg{position:absolute;top:12px;right:12px;font-size:.8rem;font-weight:750;color:var(--tone);background:color-mix(in srgb,var(--tone) 14%,transparent);border-radius:8px;padding:1px 7px}
+.fcard:has(.favg) b{padding-right:62px}
+.yavg{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.yavg b,.yavg small{display:block}
+.gbig{font-size:1.7rem;font-weight:800;color:var(--tone);background:color-mix(in srgb,var(--tone) 12%,transparent);border-radius:12px;padding:4px 12px}
+.linkbtn{border:0;background:none;color:var(--accent);font-size:.9rem;cursor:pointer;padding:0}
+@media (max-width:400px){.stat{padding:9px 8px 8px}.stat b{font-size:1rem}}
+@media (max-width:560px){.tabs.tabs4{display:grid;grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -323,8 +348,8 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
 const APP_VERSION = '1.0.0';
-const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes'];
-const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [] };
+const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
+const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
 const SPACES = { schule: { label: 'Schule', icon: 'book' }, alltag: { label: 'Alltag', icon: 'home' } };
 const FWORD = { schule: 'Lernfeld', alltag: 'Kategorie' };
@@ -406,7 +431,8 @@ const ICONS = {
   home: '<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/>',
   open: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>',
   warn: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
-  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>'
 };
 const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
@@ -424,7 +450,7 @@ function toast(msg, type = '', action) {
 let DB;
 function idbOpen() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open('schulvault', 4);
+    const r = indexedDB.open('schulvault', 5);
     r.onupgradeneeded = () => {
       const d = r.result;
       // guard mit contains(): so bekommen auch bereits installierte Geräte die neuen Speicherbereiche, ohne die alten anzufassen
@@ -469,6 +495,7 @@ function del(t, o) {
     live('todos').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; x.docId = null; touch('todos', x); });
     live('exams').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('exams', x); });
     live('events').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('events', x); });
+    live('grades').filter(x => x.fieldId === o.id).forEach(x => del('grades', x));
   }
   if (t === 'docs') {
     live('atts').filter(a => a.docId === o.id).forEach(a => del('atts', a));
@@ -476,6 +503,23 @@ function del(t, o) {
   }
   if (t === 'atts') dropLocalBlob(o.id);
 }
+/* ---------- Noten (Skala 1–6, einfacher Durchschnitt) ---------- */
+// akzeptiert „2“, „2,3“, „2.5“, „2+“ (= 1,7) und „2-“ (= 2,3)
+function parseGrade(raw) {
+  const s = String(raw || '').trim().replace(',', '.').replace(/\s+/g, '');
+  let v = null;
+  const m = s.match(/^([1-6])([+-])$/);
+  if (m) v = +m[1] + (m[2] === '+' ? -0.3 : 0.3);
+  else if (/^\d(\.\d{1,2})?$/.test(s)) v = +s;
+  if (v == null || v < 0.7 || v > 6) return null;
+  return Math.round(v * 100) / 100;
+}
+const fmtNum = (v, d = 1) => (+v).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('.', ',');
+const fmtGrade = g => g.raw ? g.raw.replace('.', ',') : fmtNum(g.value, 2);
+const gradesOfField = fid => live('grades').filter(g => g.fieldId === fid).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+function gradeAvg(list) { return list.length ? list.reduce((n, g) => n + g.value, 0) / list.length : null; }
+const fmtAvg = v => v == null ? '–' : v.toFixed(2).replace('.', ',');
+const gradeTone = v => v == null ? '' : v < 2.5 ? 'g-good' : v < 3.5 ? 'g-ok' : v < 4.5 ? 'g-warn' : 'g-bad';
 const fieldsOfYear = yid => live('fields').filter(f => f.yearId === yid).sort((a, b) => cmp(a.name, b.name));
 const altagFields = () => live('fields').filter(f => !f.yearId).sort((a, b) => cmp(a.name, b.name));
 const spaceOfField = f => (f && f.yearId) ? 'schule' : (f ? 'alltag' : 'schule');
@@ -1127,7 +1171,7 @@ const docOptions = (fid, sel) => `<option value="">– keine Unterlage –</opti
   docsOfField(fid).sort((a, b) => cmp(a.title, b.title)).map(d => `<option value="${d.id}" ${d.id === sel ? 'selected' : ''}>${esc(d.title || 'Ohne Titel')}</option>`).join('');
 const sortTodos = a => a.slice().sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999') || (y.prio ?? 1) - (x.prio ?? 1) || x.createdAt - y.createdAt);
 function docHay(d) {
-  const atts = live('atts').filter(a => a.docId === d.id).map(a => a.name + ' ' + (a.caption || '')).join(' ');
+  const atts = live('atts').filter(a => a.docId === d.id).map(a => a.name + ' ' + (a.caption || '') + ' ' + (a.ocrText || '')).join(' ');
   return [d.title, (d.tags || []).join(' '), d.note, d.place, atts].join(' ').toLowerCase();
 }
 
@@ -1313,10 +1357,13 @@ function vInhalte() {
 function vYear(id) {
   const y = byId('years', id); if (!y) return null;
   const fs = fieldsOfYear(id);
-  let h = `<div class="sec-h"><h2>Lernfelder</h2><button class="btn small" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld</button></div>`;
+  const avgs = fs.map(f => gradeAvg(gradesOfField(f.id))).filter(v => v != null);
+  const yAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : null;
+  let h = yAvg != null ? `<div class="card pad yavg"><span class="gbig ${gradeTone(yAvg)}">${fmtAvg(yAvg)}</span><span><b>Gesamtdurchschnitt</b><small>Mittel aus ${avgs.length} ${avgs.length === 1 ? 'Lernfeld' : 'Lernfeldern'} mit Noten</small></span></div>` : '';
+  h += `<div class="sec-h"><h2>Lernfelder</h2><button class="btn small" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld</button></div>`;
   h += fs.length ? `<div class="grid">${fs.map(f => {
-    const nd = docsOfField(f.id).length, nt = todosOpen().filter(t => t.fieldId === f.id).length;
-    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}"><b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
+    const nd = docsOfField(f.id).length, nt = todosOpen().filter(t => t.fieldId === f.id).length, av = gradeAvg(gradesOfField(f.id));
+    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}">${av != null ? `<span class="favg ${gradeTone(av)}">Ø ${fmtAvg(av)}</span>` : ''}<b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
   }).join('')}</div>`
     : `<div class="card empty">${ic('folder')}<p>Noch keine Lernfelder. Lege z. B. „Lernfeld 1“ oder ein Fach an.</p><button class="btn primary" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld anlegen</button></div>`;
   h += `<section style="margin-top:24px"><div class="sec-h"><h2>Notizen zum Schuljahr</h2></div>${noteBox(`years.${id}.note`, y.note, 'Allgemeine Notizen, Termine, Lehrer, Prüfungsplan …')}</section>`;
@@ -1326,17 +1373,20 @@ function vYear(id) {
 /* ---------- Ansicht: Lernfeld ---------- */
 function vField(id) {
   const f = byId('fields', id); if (!f) return null;
-  if (UI.fid !== id) { UI.fid = id; UI.ftab = 'docs'; UI.dkind = 'all'; UI.dq = ''; }
+  if (UI.fid !== id) { UI.fid = id; UI.ftab = 'over'; UI.dkind = 'all'; UI.dq = ''; }
   const sp = spaceOfField(f);
   const y = yearOfField(f), docs = docsOfField(id), todos = live('todos').filter(t => t.fieldId === id);
   const fieldNotes = live('notes').filter(n => n.fieldId === id).sort((a, b) => b.createdAt - a.createdAt);
   const nOpen = todos.filter(t => !t.done).length;
   let h = `<div class="crumb"><a href="#/inhalte">${esc(SPACES[sp].label)}</a>${y ? ` › <a href="#/y/${y.id}">${esc(y.name)}</a>` : ''}</div>`;
-  h += `<div class="tabs">
+  h += `<div class="tabs tabs4">
+    <button data-a="ftab" data-v="over" class="${UI.ftab === 'over' ? 'on' : ''}">${ic('list')} Übersicht</button>
     <button data-a="ftab" data-v="docs" class="${UI.ftab === 'docs' ? 'on' : ''}">${ic('file')} Unterlagen <span class="n">${docs.length}</span></button>
     <button data-a="ftab" data-v="notes" class="${UI.ftab === 'notes' ? 'on' : ''}">${ic('note')} Notizen ${fieldNotes.length ? `<span class="n">${fieldNotes.length}</span>` : ''}</button>
     <button data-a="ftab" data-v="todos" class="${UI.ftab === 'todos' ? 'on' : ''}">${ic('check')} Aufgaben ${nOpen ? `<span class="n">${nOpen}</span>` : ''}</button></div>`;
-  if (UI.ftab === 'docs') {
+  if (UI.ftab === 'over') {
+    h += fieldOverviewHTML(f, sp, todos);
+  } else if (UI.ftab === 'docs') {
     const nk = k => docs.filter(d => d.kind === k).length;
     h += `<div class="filters"><input class="inp" data-a-input="dq" value="${esc(UI.dq)}" placeholder="In diesem Lernfeld suchen …" aria-label="Suchen">
       <select class="inp" data-a-change="dsort" aria-label="Sortierung"><option value="date" ${UI.dsort === 'date' ? 'selected' : ''}>Nach Datum</option><option value="edited" ${UI.dsort === 'edited' ? 'selected' : ''}>Zuletzt bearbeitet</option><option value="name" ${UI.dsort === 'name' ? 'selected' : ''}>Nach Name</option></select></div>
@@ -1353,6 +1403,91 @@ function vField(id) {
     h += todoSection({ fieldId: id }, todos, { noField: true });
   }
   return { title: f.name, back: y ? `/y/${y.id}` : '/inhalte', actions: `<button class="icon-btn" data-a="field-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
+}
+/* Übersicht eines Lernfelds/einer Kategorie: das Wichtigste auf einen Blick */
+function statTile(label, value, sub, cls = '', attrs = '') {
+  return `<${attrs ? 'button type="button"' : 'div'} class="stat ${cls}" ${attrs}><small>${esc(label)}</small><b>${value}</b><span>${sub}</span></${attrs ? 'button' : 'div'}>`;
+}
+function gradeRow(g) {
+  return `<div class="row" data-a="grade-edit" data-id="${g.id}" style="cursor:pointer"><span class="gchip ${gradeTone(g.value)}">${esc(fmtGrade(g))}</span>
+    <span class="grow"><b>${esc(g.label || 'Note')}</b><small>${esc([fmtDate(g.date), (g.note || '').split('\n')[0]].filter(Boolean).join(' · '))}</small></span></div>`;
+}
+function fieldOverviewHTML(f, sp, todos) {
+  const t0 = today(), id = f.id;
+  const open = sortTodos(todos.filter(t => !t.done));
+  const nextDue = open.find(t => t.due);
+  let h = '';
+  if (sp === 'schule') {
+    const grades = gradesOfField(id), avg = gradeAvg(grades);
+    const exams = live('exams').filter(e => e.fieldId === id);
+    const upcoming = exams.filter(e => e.date >= t0).sort((a, b) => a.date.localeCompare(b.date));
+    const past = exams.filter(e => e.date < t0).sort((a, b) => b.date.localeCompare(a.date));
+    const nx = upcoming[0];
+    h += `<div class="stats">
+      ${statTile('Durchschnitt', grades.length ? `Ø ${fmtAvg(avg)}` : '–', grades.length ? `${grades.length} ${grades.length === 1 ? 'Note' : 'Noten'}` : 'keine Noten', grades.length ? gradeTone(avg) : '')}
+      ${statTile('Nächste LK', nx ? esc(fmtDue(nx.date)) : '–', nx ? esc(nx.title) : 'nichts geplant', nx && daysBetween(t0, nx.date) <= 3 ? 'g-warn' : '', nx ? `data-a="exam-edit" data-id="${nx.id}"` : '')}
+      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), '', 'data-a="ftab" data-v="todos"')}
+    </div>`;
+    h += `<section><div class="sec-h"><h2>Noten</h2><button class="btn small" data-a="grade-new" data-f="${id}">${ic('plus')} Note</button></div>`;
+    h += grades.length ? `<div class="card">${grades.map(gradeRow).join('')}</div>`
+      : `<p class="hint" style="margin:0 2px">Noch keine Noten. Trag hier deine LK-, Test- oder mündlichen Noten ein – der Durchschnitt wird automatisch berechnet.</p>`;
+    h += `</section><section><div class="sec-h"><h2>LKs &amp; Arbeiten</h2><button class="btn small" data-a="exam-new" data-f="${id}">${ic('plus')} LK</button></div>`;
+    h += upcoming.length ? `<div class="card">${upcoming.map(e => examRow(e, { noField: true })).join('')}</div>`
+      : `<p class="hint" style="margin:0 2px">Keine anstehende LK. Was du im Kalender für dieses Lernfeld einträgst, erscheint hier.</p>`;
+    if (past.length) h += `<details class="more" style="margin-top:10px"><summary>${ic('cal')} Vergangene LKs (${past.length})</summary><div class="card" style="margin-top:8px">${past.map(e => examRow(e, { noField: true })).join('')}</div></details>`;
+    h += `</section>`;
+  } else {
+    const evs = live('events').filter(e => e.fieldId === id).map(e => ({ e, occ: nextOccurrence(e, t0) })).filter(x => x.occ).sort((a, b) => a.occ.localeCompare(b.occ));
+    const nx = evs[0];
+    h += `<div class="stats">
+      ${statTile('Nächster Termin', nx ? esc(fmtDue(nx.occ)) : '–', nx ? esc(nx.e.title) : 'nichts geplant', '', nx ? `data-a="event-edit" data-id="${nx.e.id}"` : '')}
+      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), '', 'data-a="ftab" data-v="todos"')}
+      ${statTile('Unterlagen', String(docsOfField(id).length), 'gespeichert', '', 'data-a="ftab" data-v="docs"')}
+    </div>`;
+    h += `<section><div class="sec-h"><h2>Termine</h2><button class="btn small" data-a="event-new" data-f="${id}">${ic('plus')} Termin</button></div>`;
+    h += evs.length ? `<div class="card">${evs.slice(0, 5).map(x => eventRow(x.e, x.occ)).join('')}</div>`
+      : `<p class="hint" style="margin:0 2px">Keine anstehenden Termine in dieser Kategorie.</p>`;
+    h += `</section>`;
+  }
+  h += `<section><div class="sec-h"><h2>Offene Aufgaben</h2>${open.length > 4 ? `<button type="button" class="linkbtn" data-a="ftab" data-v="todos">Alle ${open.length}</button>` : ''}</div>`;
+  h += open.length ? `<div class="card">${open.slice(0, 4).map(t => todoRow(t, { noField: true })).join('')}</div>`
+    : `<p class="hint" style="margin:0 2px">Keine offenen Aufgaben. ${ic('check')}</p>`;
+  h += `</section>`;
+  return h;
+}
+const GRADE_KINDS = ['LK', 'Test', 'Mündlich', 'Referat', 'Projekt', 'Hausaufgabe', 'Zeugnis'];
+function gradeModal(id, preset = {}) {
+  const g = id ? byId('grades', id) : null;
+  const fid = g ? g.fieldId : preset.fieldId;
+  return askModal(`<h3>${g ? 'Note bearbeiten' : 'Neue Note'}</h3><form>
+    <div class="two"><div><label class="lbl">Note</label><input class="inp" name="grade" value="${esc(g ? fmtGrade(g) : '')}" inputmode="decimal" placeholder="z. B. 2, 2,3 oder 2-" autocomplete="off"></div>
+    <div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(g ? g.date : today())}"></div></div>
+    <label class="lbl">Wofür?</label><input class="inp" name="label" value="${esc(g ? g.label : '')}" placeholder="z. B. LK 1, Test Kapitel 3, Mündlich" autocomplete="off">
+    <div class="chips" style="margin-top:8px">${GRADE_KINDS.map(k => `<button type="button" class="chip btnlike" data-gk="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+    <label class="lbl">${FWORD.schule}</label><select class="inp" name="field">${fieldOptions(fid, false, 'schule')}</select>
+    <details class="more" ${g && g.note ? 'open' : ''}><summary>${ic('note')} Notiz</summary><textarea class="inp" name="note" style="min-height:64px" placeholder="z. B. Thema, Fehlerschwerpunkte …">\n${esc(g ? g.note : '')}</textarea></details>
+    <p class="hint" data-err style="color:var(--danger);display:none">Bitte eine Note zwischen 1 und 6 eingeben (z. B. 2, 2,3 oder 2-).</p>
+    <div class="mact">${g ? `<button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button>` : ''}<button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    const F = $('form', m);
+    $$('[data-gk]', m).forEach(b => b.onclick = () => {
+      const k = b.dataset.gk, n = live('grades').filter(x => x !== g && x.fieldId === F.field.value && (x.label || '').startsWith(k)).length;
+      F.label.value = k === 'LK' || k === 'Test' ? `${k} ${n + 1}` : k;
+    });
+    if (g) $('[data-del]', m).onclick = () => {
+      done(null); del('grades', g); render();
+      toast('Note gelöscht', '', { label: 'Rückgängig', fn: () => { g.deleted = false; touch('grades', g); render(); } });
+    };
+    F.onsubmit = ev => {
+      ev.preventDefault();
+      const raw = F.grade.value.trim(), v = parseGrade(raw);
+      if (v == null) { $('[data-err]', m).style.display = ''; F.grade.focus(); return; }
+      const props = { value: v, raw: /[+-]/.test(raw) ? raw.replace(/\s+/g, '') : '', label: F.label.value.trim(), date: F.date.value || today(), fieldId: F.field.value || fid, note: F.note.value.trim() };
+      if (g) { Object.assign(g, props); touch('grades', g); } else add('grades', props);
+      done(true); render();
+    };
+    setTimeout(() => F.grade.focus(), 30);
+  });
 }
 function docListHTML(docs) {
   let list = docs.filter(d => UI.dkind === 'all' || d.kind === UI.dkind);
@@ -1402,7 +1537,7 @@ function vDoc(id) {
   if (kind !== 'digital' || photos.length) {
     h += `<section style="margin-top:22px"><div class="sec-h"><h2>Fotos &amp; Seiten <small>${photos.length || ''}</small></h2></div><div class="card pad">
       <div class="photos">${photos.map((a, i) => `<button class="ph ${HAVE.has(a.id) ? '' : 'cloud'}" data-a="lb-open" data-id="${a.id}" aria-label="Seite ${i + 1}"><img data-thumb="${a.id}" alt="">
-        <span class="pn">${i + 1}</span><span class="cl">${ic('cloud')}Cloud</span>${a.caption ? `<span class="cap">${esc(a.caption)}</span>` : ''}</button>`).join('')}
+        <span class="pn">${i + 1}</span>${a.ocrText ? `<span class="ocrd" title="Text erkannt">${ic('scan')}</span>` : ''}<span class="cl">${ic('cloud')}Cloud</span>${a.caption ? `<span class="cap">${esc(a.caption)}</span>` : ''}</button>`).join('')}
         <button class="ph add" data-a="photo-cam" data-id="${id}">${ic('camera')}Foto</button></div>
       <div class="actions"><button class="btn primary" data-a="photo-cam" data-id="${id}">${ic('camera')} Foto aufnehmen</button>
         <button class="btn" data-a="photo-gal" data-id="${id}">${ic('image')} Aus Galerie</button>
@@ -1554,7 +1689,9 @@ function searchHTML(raw) {
   let h = '';
   const docs = live('docs').filter(d => docHay(d).includes(q)).sort((a, b) => b.updatedAt - a.updatedAt);
   if (docs.length) h += `<div class="grp">Unterlagen · ${docs.length}</div><div class="card">${docs.map(d => {
-    const f = byId('fields', d.fieldId), sp = spaceOfField(f), sn = snippet(d.note, q) || snippet((d.tags || []).join(' #'), q) || snippet(d.place, q);
+    const f = byId('fields', d.fieldId), sp = spaceOfField(f);
+    const ocrHit = live('atts').filter(a => a.docId === d.id).map(a => a.ocrText || '').find(t => t.toLowerCase().includes(q));
+    const sn = snippet(d.note, q) || snippet((d.tags || []).join(' #'), q) || snippet(d.place, q) || snippet(ocrHit, q);
     return `<a class="row" href="#/d/${d.id}"><span class="ico k-${d.kind}">${ic(KINDS[d.kind]?.icon || 'file')}</span><span class="grow"><b>${esc(d.title || 'Ohne Titel')}</b><small>${esc(f ? f.name : '')}</small>${sn}</span>${spTag(sp)}</a>`;
   }).join('')}</div>`;
   const fs = live('fields').filter(f => (f.name + ' ' + (f.note || '')).toLowerCase().includes(q));
@@ -1650,6 +1787,7 @@ async function lbRender() {
     <div class="lb-stage" id="lbst"><div class="lb-msg">Wird geladen …</div></div>
     ${n > 1 ? `<button class="lb-nav prev" data-a="lb-prev" aria-label="Vorherige">${ic('chevl')}</button><button class="lb-nav next" data-a="lb-next" aria-label="Nächste">${ic('chevr')}</button>` : ''}
     <div class="lb-bot">${photo ? `<input class="lb-cap" data-bind="atts.${a.id}.caption" value="${esc(a.caption || '')}" placeholder="Beschriftung, z. B. Tafelbild oder Seite 3" aria-label="Beschriftung">
+      <button class="icon-btn" data-a="lb-ocr" aria-label="${a.ocrText ? 'Erkannten Text ansehen' : 'Text erkennen'}">${ic('scan')}</button>
       <button class="icon-btn" data-a="lb-rotl" aria-label="Links drehen">${ic('rotL')}</button><button class="icon-btn" data-a="lb-rotr" aria-label="Rechts drehen">${ic('rotR')}</button>
       <button class="icon-btn" data-a="lb-mvl" aria-label="Eine Seite nach vorn" ${LB.i === 0 ? 'disabled style="opacity:.3"' : ''}>${ic('left')}</button>
       <button class="icon-btn" data-a="lb-mvr" aria-label="Eine Seite nach hinten" ${LB.i === n - 1 ? 'disabled style="opacity:.3"' : ''}>${ic('right')}</button>` : ''}</div>`;
@@ -1668,6 +1806,48 @@ async function lbMove(dir) {
   [LB.ids[LB.i], LB.ids[j]] = [LB.ids[j], LB.ids[LB.i]]; LB.i = j; lbRender();
 }
 const lbStep = d => { if (LB.ids.length < 2) return; LB.i = (LB.i + d + LB.ids.length) % LB.ids.length; lbRender(); };
+
+/* ---------- Texterkennung (OCR) ---------- */
+let tesseractLoading = null;
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (tesseractLoading) return tesseractLoading;
+  tesseractLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = () => resolve(window.Tesseract);
+    s.onerror = () => { tesseractLoading = null; reject(new Error('Texterkennung konnte nicht geladen werden (dafür ist beim ersten Mal Internet nötig).')); };
+    document.head.appendChild(s);
+  });
+  return tesseractLoading;
+}
+async function runOcr(a, force = false) {
+  if (!a) return;
+  if (a.ocrText && !force) { ocrModal(a); return; }
+  const Tesseract = await loadTesseract();
+  await ensureBlob(a); const u = await fullURL(a);
+  const worker = await Tesseract.createWorker('deu');
+  try {
+    const { data } = await worker.recognize(u);
+    a.ocrText = (data.text || '').trim(); touch('atts', a);
+  } finally { worker.terminate(); }
+  ocrModal(a);
+}
+function ocrModal(a) {
+  return askModal(`<h3>Erkannter Text</h3>
+    <p class="hint" style="margin:-6px 0 10px">Automatisch erkannt – bei Handschrift kann das fehlerhaft sein, bitte prüfen und ggf. korrigieren. Gespeicherter Text macht diese Unterlage in der Suche auffindbar.</p>
+    <form><textarea class="inp autogrow" data-min="140" name="text" placeholder="Kein Text erkannt …">\n${esc(a.ocrText || '')}</textarea>
+    <div class="mact"><button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button><button type="button" class="btn ghost" data-redo>${ic('refresh')} Erneut</button><button type="button" class="btn ghost" data-close>Schließen</button><button class="btn primary">Speichern</button></div></form>`,
+  (m, done) => {
+    autoGrow($('textarea', m));
+    $('form', m).onsubmit = e => { e.preventDefault(); a.ocrText = $('textarea', m).value.trim(); touch('atts', a); done(null); lbRender(); toast('Text gespeichert'); };
+    $('[data-del]', m).onclick = () => { a.ocrText = ''; touch('atts', a); done(null); lbRender(); toast('Erkannter Text entfernt'); };
+    $('[data-redo]', m).onclick = () => {
+      done(null); toast('Texterkennung läuft … (kann etwas dauern)');
+      runOcr(a, true).catch(e => toast('Texterkennung fehlgeschlagen: ' + (e.message || e), 'err'));
+    };
+  });
+}
 
 /* ---------- Dateien ---------- */
 async function saveAttToDevice(a) {
@@ -1739,6 +1919,8 @@ const ACT = {
   },
   'space-switch': el => { setFilter(el.dataset.v); render(); },
   'note-edit': el => noteModal(el.dataset.id),
+  'grade-new': el => gradeModal(null, { fieldId: el.dataset.f }),
+  'grade-edit': el => gradeModal(el.dataset.id),
   'field-quick-new': async el => {
     const f = await quickCreateField(el.dataset.space); if (!f) return;
     const form = el.closest('form'); if (!form) return;
@@ -1780,6 +1962,13 @@ const ACT = {
   'lb-rotr': async () => { const a = byId('atts', LB.ids[LB.i]); if (a) { await rotateAtt(a, 90); lbRender(); } },
   'lb-dl': () => { const a = byId('atts', LB.ids[LB.i]); if (a) saveAttToDevice(a); },
   'lb-del': () => { const a = byId('atts', LB.ids[LB.i]); if (a) deleteAtt(a); },
+  'lb-ocr': async el => {
+    const a = byId('atts', LB.ids[LB.i]); if (!a || el.classList.contains('busy')) return;
+    el.classList.add('busy'); el.disabled = true;
+    try { await runOcr(a); }
+    catch (e) { toast('Texterkennung fehlgeschlagen: ' + (e.message || e), 'err'); }
+    finally { el.classList.remove('busy'); el.disabled = false; }
+  },
   tfilter: el => { UI.tfilter = el.dataset.v; render(); },
   'todo-toggle': el => { const t = byId('todos', el.dataset.id); if (!t) return; t.done = !t.done; t.doneAt = t.done ? now() : null; touch('todos', t); render(); },
   'todo-edit': el => todoModal(el.dataset.id),
@@ -1967,13 +2156,13 @@ function remindProps(F) {
 }
 
 /* ---------- Arbeit (Klassenarbeit/Test): Baustein & Dialog ---------- */
-function examRow(e) {
+function examRow(e, opt = {}) {
   const f = byId('fields', e.fieldId), d = daysBetween(today(), e.date);
   const soon = e.remind != null && d >= 0 && d <= e.remind;
   return `<div class="todo ${soon ? 'p2' : ''}" data-a="exam-edit" data-id="${e.id}" style="cursor:pointer">
     <span class="ico" style="background:${f ? f.color : 'var(--accent)'};color:#fff">${ic('warn')}</span>
     <div class="tbody"><div class="ttl">${esc(e.title)}</div>
-      <div class="tmeta">${f ? `<span class="tag fld" style="background:${f.color}">${esc(f.name)}</span>` : ''}
+      <div class="tmeta">${f && !opt.noField ? `<span class="tag fld" style="background:${f.color}">${esc(f.name)}</span>` : ''}
       <span class="tag ${d < 0 ? 'due-over' : d === 0 ? 'due-today' : ''}">${ic('cal')}${esc(fmtDue(e.date))}</span>
       ${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}</div></div></div>`;
 }
@@ -1982,7 +2171,7 @@ function examModal(id, preset = {}) {
   return askModal(`<h3>${e ? 'Arbeit bearbeiten' : 'Neue Arbeit'}</h3><form>
     <label class="lbl">Thema / Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Klassenarbeit Rechnungswesen" autocomplete="off">
     <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
-    <div><label class="lbl">Lernfeld</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'schule')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="schule" aria-label="Neues Lernfeld anlegen">${ic('plus')}</button></div></div></div>
+    <div><label class="lbl">Lernfeld</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : (preset.fieldId || null), true, 'schule')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="schule" aria-label="Neues Lernfeld anlegen">${ic('plus')}</button></div></div></div>
     <label class="lbl">Erinnerung</label>${remindFields(e)}
     <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
     <div class="mact">${e ? `<button type="button" class="btn danger" data-del style="margin-right:auto">${ic('trash')}</button>` : ''}<button type="button" class="btn ghost" data-close>Abbrechen</button><button class="btn primary">Speichern</button></div></form>`,
@@ -2021,7 +2210,7 @@ function eventModal(id, preset = {}) {
   return askModal(`<h3>${e ? 'Termin bearbeiten' : 'Neuer Termin'}</h3><form>
     <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(e ? e.title : '')}" placeholder="z. B. Geburtstag Mama, Müllabfuhr, Miete" autocomplete="off">
     <div class="two"><div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(e ? e.date : (preset.date || today()))}"></div>
-    <div><label class="lbl">Kategorie</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : null, true, 'alltag')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="alltag" aria-label="Neue Kategorie anlegen">${ic('plus')}</button></div></div></div>
+    <div><label class="lbl">Kategorie</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(e ? e.fieldId : (preset.fieldId || null), true, 'alltag')}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="alltag" aria-label="Neue Kategorie anlegen">${ic('plus')}</button></div></div></div>
     <label class="lbl">Wiederholung</label><select class="inp" name="repeat">${REPEAT_OPTS.map(([v, l]) => `<option value="${v}" ${((e && e.repeat) || 'once') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <label class="lbl">Erinnerung</label>${remindFields(e)}
     <label class="lbl">Notiz</label><textarea class="inp" name="note" style="min-height:72px">\n${esc(e ? e.note : '')}</textarea>
@@ -2207,7 +2396,7 @@ Object.assign(ACT, {
   },
   'exam-new': el => {
     const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
-    examModal(null, { date: el.dataset.date });
+    examModal(null, { date: el.dataset.date, fieldId: el.dataset.f });
   },
   'exam-edit': el => {
     const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
@@ -2215,7 +2404,7 @@ Object.assign(ACT, {
   },
   'event-new': el => {
     const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
-    eventModal(null, { date: el.dataset.date });
+    eventModal(null, { date: el.dataset.date, fieldId: el.dataset.f });
   },
   'event-edit': el => {
     const modals = $$('.modal'); if (modals.length) modals[modals.length - 1]._done(null);
