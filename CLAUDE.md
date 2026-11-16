@@ -4,7 +4,7 @@ Persönliche PWA für Schule und Alltag: Unterlagen (mit Fotos/Dateien), Notizen
 
 ## Grundregeln
 
-- **Alles bleibt in `index.html`.** Kein Framework, keine Abhängigkeiten, kein Build-Schritt. CSS steht im `<style>`-Block, das gesamte JavaScript in dem einen `<script>`-Block. Keine neuen Dateien für Code anlegen.
+- **Alles bleibt in `index.html`.** Kein Framework, keine Abhängigkeiten, kein Build-Schritt. CSS steht im `<style>`-Block, das gesamte JavaScript in dem einen `<script>`-Block. Keine neuen Dateien für App-Code anlegen.
 - **Oberfläche auf Deutsch**, Ansprache mit „du“. Texte kurz und alltagstauglich.
 - **Mobil zuerst:** Jede Änderung muss auf 360–390 px Breite gut aussehen (kein horizontales Scrollen). Desktop ab 900 px hat eine Seitenleiste.
 - **Datenformat nie ändern, ohne alte Daten automatisch umzuwandeln.** Bestehende Einträge auf Handy, Laptop und im Daten-Repo müssen nach jedem Update weiter funktionieren. Neue Felder immer optional behandeln (`x.feld || ''`).
@@ -45,16 +45,25 @@ Wichtige Muster:
 
 ## Prüfen und Testen
 
-- Syntax nach jeder Änderung prüfen:
-  `node -e "const s=require('fs').readFileSync('index.html','utf8'); new Function(s.match(/<script>([\s\S]*)<\/script>/)[1]); console.log('Syntax OK')"`
-- Im Browser testen: `python3 -m http.server 8099` im Repo-Ordner, dann mit Playwright in Handygröße (390 × 844, `isMobile`, `hasTouch`, `locale: 'de-DE'`) durchklicken und auf Konsolenfehler achten.
+- Syntax: Der Hook prüft nach jeder Änderung automatisch (siehe unten). Von Hand:
+  `node .claude/hooks/check-syntax.js index.html sw.js manifest.webmanifest`
+- Im Browser testen: `python3 -m http.server 8099` im Repo-Ordner (Windows: `py -m http.server 8099`), dann mit dem Playwright-MCP `http://localhost:8099/` öffnen. Es startet als Samsung Galaxy S24 (360 × 780, Touch) mit frischem, leerem Profil. Durchklicken, mit `browser_console_messages` auf Fehler achten und prüfen, dass `document.documentElement.scrollWidth` nicht breiter als das Fenster ist. Mit `browser_resize` zusätzlich 390 × 844 und den Desktop ab 900 px ansehen.
+- Beim Testen nie den Sync mit echtem Token einrichten; Testdaten bleiben im Testbrowser.
 - Die Texterkennung lädt Tesseract.js beim ersten Gebrauch von cdn.jsdelivr.net nach; offline oder ohne CDN-Zugriff zeigt sie eine Fehlermeldung, das ist erwartet.
 
 ## Veröffentlichen
 
-- Änderungen auf `main` pushen → GitHub Pages ist nach ca. einer Minute aktuell.
-- Der Service Worker (`sw.js`) lädt immer zuerst aus dem Netz, der Cache dient nur als Offline-Reserve.
+- Veröffentlicht wird mit **`/release`** (startet nur Benny): Stand von GitHub holen, Cache-Version in `sw.js` hochzählen, Syntax und Datenformat prüfen, nach Tokens suchen, auf `main` pushen. GitHub Pages ist nach ca. einer Minute aktuell.
+- Hochgeladen wird per `git push`, kein GitHub-MCP nötig (das bräuchte einen Token, und der gehört nicht in dieses öffentliche Repo).
+- Der Service Worker (`sw.js`) lädt immer zuerst aus dem Netz, der Cache dient nur als Offline-Reserve. Erst eine geänderte `sw.js` (neue Cache-Version) lässt Handy und Laptop den neuen Service Worker installieren.
 
-## Hooks in `.claude/`
+## Claude-Code-Einrichtung (`.claude/`, `.mcp.json`)
 
-- **Token-Sperre** (`.claude/hooks/block-tokens.js`): blockiert Schreiben, Bearbeiten und Shell-Befehle, die wie ein GitHub-Token aussehen (`ghp_…`, `github_pat_…` usw.). Wenn er anschlägt: den Token entfernen, nicht umgehen.
+Die Hilfsskripte hier sind Werkzeuge für Claude Code, kein App-Code; die Regel „alles in `index.html`“ gilt für die App.
+
+- **Token-Sperre** (`.claude/hooks/block-tokens.js`, vor jedem Schreiben/Bearbeiten/Shell-Befehl): blockiert alles, was wie ein GitHub-Token aussieht (`ghp_…`, `github_pat_…` usw.). Wenn er anschlägt: den Token entfernen, nicht umgehen.
+- **Syntax-Prüfung** (`.claude/hooks/check-syntax.js`, nach jedem Schreiben/Bearbeiten): prüft den `<script>`-Block in `.html`, ganze `.js`-Dateien und `.json`/`.webmanifest`. Meldet sie einen Fehler mit Zeilennummer, sofort beheben.
+- **Skill `/release`** (`.claude/skills/release/SKILL.md`): siehe „Veröffentlichen“.
+- **Subagent `datenformat-pruefer`** (`.claude/agents/datenformat-pruefer.md`): prüft vor jedem Release und nach Änderungen am Datenmodell, ob alte Daten (IndexedDB, `data.json`, Sicherungen) weiter funktionieren – statisch und mit einem Upgrade-Test alte → neue Version.
+- **Playwright-MCP** (`.mcp.json`): Browser für Tests in Handygröße, siehe „Prüfen und Testen“. Beim ersten Start fragt Claude Code einmal nach Freigabe. Läuft die Sitzung als root (manche Cloud-Umgebungen) und Chromium meldet „sandboxing failed“, startet der MCP-Browser dort nicht; dann mit einem eigenen Playwright-Skript und `chromiumSandbox: false` testen.
+- `.gitignore` hält Sicherungen (`lifevault-daten*`), `.claude/settings.local.json` und Testausgaben aus dem Repo.
