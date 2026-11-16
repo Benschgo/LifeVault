@@ -26,7 +26,7 @@ Das Skript ist in Abschnitte gegliedert, jeweils mit einem `/* ===== … ===== *
 1. **Kernlogik** – Datenmodell, IndexedDB, Hilfsfunktionen, Feiertage, Turnus, Noten, Benachrichtigungen
 2. **Sync** – Abgleich mit dem privaten Daten-Repo über die GitHub-API
 3. **Oberfläche Teil 1** – Dialoge, Router, Start (Dashboard), Inhalte, Schuljahr, Lernfeld, Unterlage
-4. **Oberfläche Teil 2** – Aufgaben, Notizen, Suche, Einstellungen, Foto-Viewer, OCR, Aktionen (`ACT`), `init()`
+4. **Oberfläche Teil 2** – Aufgaben, Notizen, Suche, Optionen (`vSettings`), Foto-Viewer, OCR, Aktionen (`ACT`), `init()`
 5. **Oberfläche Teil 3** – Kalender (Monat + Turnus), Arbeiten/LKs, Termine
 
 Wichtige Muster:

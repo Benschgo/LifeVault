@@ -1286,7 +1286,7 @@ const NAV_ITEMS = [
   ['/notizen', 'note', 'Notizen', ['notizen']],
   ['/cal', 'cal', 'Kalender', ['cal']],
   ['/search', 'search', 'Suche', ['search']],
-  ['/settings', 'sliders', 'Einstellungen', ['settings']]
+  ['/settings', 'sliders', 'Optionen', ['settings']]
 ];
 function renderNav(a) {
   const over = todosOpen().filter(t => t.due && t.due <= today()).length, soon = examSoonCount() + eventSoonCount();
@@ -1612,7 +1612,7 @@ function vDoc(id) {
   return { title: d.title || 'Ohne Titel', back: f ? `/f/${f.id}` : '/inhalte', actions: `<button class="icon-btn" data-a="doc-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
 /* =====================================================================
-   Oberfläche Teil 2: Aufgaben, Suche, Einstellungen, Foto-Viewer, Aktionen, Start
+   Oberfläche Teil 2: Aufgaben, Suche, Optionen, Foto-Viewer, Aktionen, Start
    ===================================================================== */
 
 /* ---------- Ansicht: Aufgaben ---------- */
@@ -1773,7 +1773,7 @@ function searchHTML(raw) {
 }
 const vSearch = () => ({ title: 'Suche', body: `<input class="inp" id="qinp" data-a-input="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suche" autocomplete="off"><div id="sres" style="margin-top:12px">${searchHTML(UI.q)}</div>` });
 
-/* ---------- Ansicht: Einstellungen ---------- */
+/* ---------- Ansicht: Optionen (Einstellungen) ---------- */
 function syncPill() {
   if (!configured()) return '<span class="pill off">Nicht eingerichtet</span>';
   if (SYNC.state === 'syncing') return `<span class="pill off">${esc(SYNC.progress || 'Synchronisiere …')}</span>`;
@@ -1830,7 +1830,7 @@ function vSettings() {
       <button class="btn danger" data-a="wipe">${ic('trash')} Alles auf diesem Gerät löschen</button></div>
     <p class="hint">Die Sicherung enthält Ordner, Notizen und Aufgaben, aber keine Dateien und Fotos – die liegen (bei aktivem Sync) im GitHub-Repo.</p></div></section>
     <p class="muted" style="text-align:center;font-size:.85rem">LifeVault ${APP_VERSION}</p>`;
-  return { title: 'Einstellungen', body: h };
+  return { title: 'Optionen', body: h };
 }
 
 /* ---------- Foto-Viewer ---------- */
@@ -2211,7 +2211,7 @@ function remindFields(item) {
   return `<details class="more" ${on ? 'open' : ''}><summary>${ic('bell')} Erinnerung${on ? '' : ' (optional)'}</summary>
     <div class="two"><div><select class="inp" name="remind" aria-label="Erinnerung">${REMIND_OPTS.map(([v, l]) => `<option value="${v}" ${String(item && item.remind != null ? item.remind : '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div><input type="time" class="inp" name="notifyTime" aria-label="Uhrzeit" value="${esc(item && item.notifyTime ? item.notifyTime : '08:00')}"></div></div>
-    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Einstellungen aktivieren.</p></details>`;
+    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Optionen aktivieren.</p></details>`;
 }
 function remindProps(F) {
   const remind = F.remind.value === '' ? null : +F.remind.value;
@@ -2391,7 +2391,7 @@ function vCalMonth() {
     <button class="chip btnlike ${cf === 'alle' ? 'on' : ''}" data-a="calf" data-v="alle">Alle</button>
     <button class="chip btnlike ${cf === 'schule' ? 'on' : ''}" data-a="calf" data-v="schule">${ic('book')} Schule</button>
     <button class="chip btnlike ${cf === 'alltag' ? 'on' : ''}" data-a="calf" data-v="alltag">${ic('home')} Alltag</button></div>`;
-  if (!bl) h += `<p class="hint" style="margin:0 2px 10px">Feiertage automatisch anzeigen: <a href="#/settings">Bundesland in den Einstellungen wählen</a>.</p>`;
+  if (!bl) h += `<p class="hint" style="margin:0 2px 10px">Feiertage automatisch anzeigen: <a href="#/settings">Bundesland in den Optionen wählen</a>.</p>`;
   h += `<div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
   rows.forEach(row => {
     const wk = ymd(row[0]);
