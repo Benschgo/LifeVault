@@ -10,6 +10,15 @@ Persönliche PWA für Schule und Alltag: Unterlagen (mit Fotos/Dateien), Notizen
 - **Datenformat nie ändern, ohne alte Daten automatisch umzuwandeln.** Bestehende Einträge auf Handy, Laptop und im Daten-Repo müssen nach jedem Update weiter funktionieren. Neue Felder immer optional behandeln (`x.feld || ''`).
 - **Dieses Repo ist öffentlich.** Niemals Tokens, Passwörter oder echte Daten committen. Ein Hook blockiert Text, der wie ein GitHub-Token aussieht (siehe unten).
 
+## Gestaltung („Werkstatt“)
+
+- Farben nur über die CSS-Variablen im `:root`-Block (hell und dunkel): `--bg` Zeichengrau, `--text` Tusche, `--accent` Leitungsblau für Bedienelemente und Links, `--signal` Signalgelb **nur** für „heute/jetzt“ und die Hauptaktion (`.fab`), `--danger` für überfällig und Feiertage.
+- Schrift: `--font-d` (DIN: Bahnschrift, Roboto Condensed …) für Titel, Zahlen, Schilder und Buttons; Fließtext bleibt Systemschrift. Keine Großbuchstaben-Labels.
+- Kleine Radien (`--radius` 6 px, `--radius-s` 3 px), Linien statt weicher Schatten. Abschnittsköpfe (`.sec-h`) mit dicker Linie darunter.
+- Lernfeld-/Kategorie-Farbe als „Ader“: `.todo.wired` mit `--c`, Feld-Schilder `.tag.fld` mit `--c` (Farbquadrat statt farbiger Fläche).
+- Freie Tage (Feiertage) schraffiert über `--hatch`. Turnus-Arten als Farbband (Startseite) bzw. Tönung (Monatskalender).
+- Umschalter (`.seg`, `.tabs`, `.chip.btnlike`) wie Wahlschalter: aktive Stellung in Tusche gefüllt.
+
 ## Aufbau von `index.html`
 
 Das Skript ist in Abschnitte gegliedert, jeweils mit einem `/* ===== … ===== */`-Kommentar:
