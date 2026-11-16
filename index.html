@@ -626,13 +626,15 @@ function germanHolidays(year, state) {
   const set = (d, name) => m.set(ymd(Array.isArray(d) ? new Date(year, d[0] - 1, d[1]) : d), name);
   set([1, 1], 'Neujahr'); set([5, 1], 'Tag der Arbeit'); set([10, 3], 'Tag der Deutschen Einheit'); set([12, 25], '1. Weihnachtstag'); set([12, 26], '2. Weihnachtstag');
   set(addDays(os, -2), 'Karfreitag'); set(addDays(os, 1), 'Ostermontag'); set(addDays(os, 39), 'Christi Himmelfahrt'); set(addDays(os, 50), 'Pfingstmontag');
-  if (['BW', 'BY', 'ST', 'TH', 'SN', 'HE', 'RP', 'SL', 'NW'].includes(state)) set([1, 6], 'Heilige Drei Könige');
+  // Nur landesweite gesetzliche Feiertage. Feiertage, die nur in einzelnen Gemeinden gelten
+  // (z. B. Fronleichnam in Teilen Sachsens und Thüringens), werden nicht markiert.
+  if (['BW', 'BY', 'ST'].includes(state)) set([1, 6], 'Heilige Drei Könige');
+  if ((state === 'BE' && year >= 2019) || (state === 'MV' && year >= 2023)) set([3, 8], 'Internationaler Frauentag');
   if (['BW', 'BY', 'HE', 'NW', 'RP', 'SL'].includes(state)) set(addDays(os, 60), 'Fronleichnam');
-  if (state === 'BY') set([8, 15], 'Mariä Himmelfahrt');
-  if (['BB', 'MV', 'SN', 'ST', 'TH', 'HB', 'HH', 'NI', 'SH', 'BE'].includes(state)) set([10, 31], 'Reformationstag');
-  if (['BW', 'BY', 'NW', 'RP', 'SL'].includes(state)) set([11, 1], 'Allerheiligen');
-  if (state === 'BE') set([3, 8], 'Internationaler Frauentag');
+  if (['BY', 'SL'].includes(state)) set([8, 15], 'Mariä Himmelfahrt');
   if (state === 'TH') set([9, 20], 'Weltkindertag');
+  if (['BB', 'MV', 'SN', 'ST', 'TH'].includes(state) || (['HB', 'HH', 'NI', 'SH'].includes(state) && year >= 2018)) set([10, 31], 'Reformationstag');
+  if (['BW', 'BY', 'NW', 'RP', 'SL'].includes(state)) set([11, 1], 'Allerheiligen');
   if (state === 'SN') set(nthWeekdayBefore(year, 11, 23, 3), 'Buß- und Bettag');
   return m;
 }
