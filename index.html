@@ -17,8 +17,9 @@
    DIN-Schrift für Titel, Zahlen und Beschriftungen, Lernfeld-Farben als „Adern“, Schraffur für freie Tage. */
 :root{
   --bg:#e7eaee;--card:#ffffff;--bar:rgba(255,255,255,.96);--text:#18212c;--muted:#5b6775;--line:#cfd5dc;--line-strong:#9aa5b1;
-  --accent:#1d5faa;--accent-ink:#ffffff;--accent-soft:#e3ecf7;--danger:#c4161c;--warn:#b45700;--ok:#23843b;
-  --accent2:#0e7c86;--accent2-soft:#ddf0f1;
+  --accent:#1d5faa;--accent-ink:#ffffff;--accent-soft:#e3ecf7;--danger:#c8102e;--warn:#b45700;--ok:#23843b;
+  --accent2:#0e7c86;--accent2-ink:#ffffff;--accent2-soft:#ddf0f1;
+  --brand:#c8102e;--brand-ink:#ffffff;--brand-soft:#fbe5e8;--brand-edge:#7a0a1c;--orange:#c2410c;
   --signal:#f5b700;--signal-ink:#18212c;
   --radius:6px;--radius-s:3px;--shadow:0 1px 0 rgba(24,33,44,.07);
   --font-d:"Bahnschrift","DIN Alternate","DIN 2014","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;
@@ -28,8 +29,9 @@
 }
 @media (prefers-color-scheme:dark){
   :root{--bg:#11161c;--card:#19212a;--bar:rgba(25,33,42,.96);--text:#e4e9ee;--muted:#97a3b0;--line:#2b3540;--line-strong:#4a5663;
-    --accent:#6ea6e8;--accent-ink:#0f1419;--accent-soft:#1d2c3d;--danger:#f06a6a;--warn:#f0a23b;--ok:#5cc27a;
-    --accent2:#4fc1c9;--accent2-soft:#143235;--signal-ink:#11161c;
+    --accent:#6ea6e8;--accent-ink:#0f1419;--accent-soft:#1d2c3d;--danger:#f0626b;--warn:#f0a23b;--ok:#5cc27a;
+    --accent2:#4fc1c9;--accent2-ink:#0f1419;--accent2-soft:#143235;--signal-ink:#11161c;
+    --brand:#d93a45;--brand-soft:#3a1c22;--brand-edge:#4d0a12;--orange:#fb8c3c;
     --shadow:0 1px 0 rgba(0,0,0,.35);color-scheme:dark}
 }
 *{box-sizing:border-box}
@@ -75,7 +77,8 @@ small,.muted{color:var(--muted)}
 @media (max-width:460px){#nav a{font-size:.74rem;padding:0 1px}}
 @media (max-width:400px){#nav a{font-size:.7rem}#nav a .ic{width:19px;height:19px}}
 #nav a.on{color:var(--text);font-weight:600}
-#nav a.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:3px;background:var(--signal)}
+#nav a.on .ic{color:var(--brand)}
+#nav a.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:3px;background:var(--brand)}
 #nav .badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:var(--radius-s);background:var(--danger);color:#fff;font-size:.74rem;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 4px}
 #nav .dot{position:absolute;top:10px;left:calc(50% + 8px);width:9px;height:9px;border-radius:2px;background:var(--danger)}
 .brand{display:none}
@@ -99,13 +102,16 @@ section{margin:0 0 26px}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;margin:4px 0 10px;padding:0 2px 6px;border-bottom:2px solid var(--text)}
 .sec-h h2{font-size:1.125rem;font-weight:600;flex:1 1 auto;min-width:0}
 .sec-h a{font-size:.9rem}
+/* Farbe je Inhaltstyp: Fällig rot, Aufgaben blau, Arbeiten orange, Termine türkis, Noten grün */
+.sec-h.kc{border-bottom-color:var(--k)}
+.sec-h.kc h2::before{content:"";display:inline-block;width:11px;height:11px;border-radius:1px;background:var(--k);margin-right:8px;vertical-align:.05em}
 .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
 .pad{padding:14px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 .btn{border:1px solid var(--line-strong);background:var(--card);border-radius:var(--radius);padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:1.0625rem;min-height:42px}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.primary:hover{background:color-mix(in srgb,var(--accent) 88%,#000);color:var(--accent-ink)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{background:color-mix(in srgb,var(--brand) 86%,#000);border-color:color-mix(in srgb,var(--brand) 86%,#000);color:var(--brand-ink)}
 .btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
 .btn.ghost{background:transparent;border-color:transparent}
 .btn.small{min-height:34px;padding:5px 11px;font-size:.95rem}
@@ -130,6 +136,12 @@ label.lbl{display:block;font-size:.9rem;font-weight:500;color:var(--muted);margi
 .chip{display:inline-flex;align-items:center;gap:5px;border-radius:var(--radius-s);padding:3px 9px;font-size:.9rem;background:var(--accent-soft);color:var(--accent);font-weight:500;border:0}
 .chip.btnlike{cursor:pointer;background:var(--card);border:1px solid var(--line-strong);color:var(--text);padding:5px 11px}
 .chip.btnlike.on{background:var(--text);color:var(--card);border-color:var(--text)}
+/* Bereiche: Schule blau, Alltag türkis */
+.chip.btnlike[data-v="schule"] .ic{color:var(--accent)}
+.chip.btnlike[data-v="alltag"] .ic{color:var(--accent2)}
+.chip.btnlike.on[data-v="schule"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.btnlike.on[data-v="alltag"]{background:var(--accent2);border-color:var(--accent2);color:var(--accent2-ink)}
+.chip.btnlike.on .ic{color:inherit}
 .chip .x{cursor:pointer;display:inline-flex}
 .chip .x .ic{width:13px;height:13px}
 /* Wahlschalter: eine Stellung ist aktiv */
@@ -142,10 +154,10 @@ label.lbl{display:block;font-size:.9rem;font-weight:500;color:var(--muted);margi
 .empty{text-align:center;padding:34px 18px;color:var(--muted)}
 .empty .ic{width:42px;height:42px;opacity:.55;margin-bottom:8px}
 .empty p{margin:6px auto 14px;max-width:34ch}
-/* Hauptaktion als Taster: Signalgelb mit Tastenkante */
-.fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:15;height:52px;padding:0 20px 0 16px;border-radius:var(--radius);border:1.5px solid var(--signal-ink);background:var(--signal);color:var(--signal-ink);
-  display:flex;align-items:center;gap:8px;font-weight:600;font-size:1.125rem;box-shadow:0 3px 0 var(--signal-ink);cursor:pointer}
-.fab:active{transform:translateY(2px);box-shadow:0 1px 0 var(--signal-ink)}
+/* Hauptaktion als Taster: Rot mit Tastenkante */
+.fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:15;height:52px;padding:0 20px 0 16px;border-radius:var(--radius);border:1.5px solid var(--brand-edge);background:var(--brand);color:var(--brand-ink);
+  display:flex;align-items:center;gap:8px;font-weight:600;font-size:1.125rem;box-shadow:0 3px 0 var(--brand-edge);cursor:pointer}
+.fab:active{transform:translateY(2px);box-shadow:0 1px 0 var(--brand-edge)}
 .fab .ic{width:22px;height:22px}
 
 /* ---------- Cards ---------- */
@@ -318,7 +330,7 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 @media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.9rem}.calnav b{font-size:1.125rem}}
 
 /* ---------- Start: Tageskopf mit Turnus-Klemmleiste ---------- */
-.today-hero{padding:14px 14px 12px}
+.today-hero{padding:14px 14px 12px;border-top:4px solid var(--brand)}
 .th-top{display:flex;align-items:flex-start;gap:12px}
 .th-num{font-size:3.25rem;font-weight:700;line-height:.86;letter-spacing:-.01em}
 .th-meta{flex:1;min-width:0;padding-top:2px}
@@ -347,6 +359,9 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 .wk-day.today .dn{color:var(--text);font-weight:700}
 .wk-day .idot{position:absolute;top:8px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .wk-day.override .band{box-shadow:inset 0 -2px 0 var(--accent2)}
+/* Sonn- und Feiertage rot wie im Wandkalender */
+.wk-day.sun small,.wk-day.sun .dn,.cal-day.sun .dn,.cal-head:nth-child(8){color:var(--danger)}
+.cal-day.today.sun .dn{color:var(--signal-ink)}
 @media (max-width:400px){.th-num{font-size:2.75rem}.wk-day .dn{font-size:1.125rem}.wk-day .idot{right:3px}}
 @media (prefers-color-scheme:dark){.wk-day.today{background:rgba(245,183,0,.09)}.wk-day.weekend{background:rgba(0,0,0,.18)}}
 
@@ -359,6 +374,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
 .stat b{font-size:1.5rem;font-weight:600;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat span{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .g-good{--tone:var(--ok)}.g-ok{--tone:var(--accent)}.g-warn{--tone:var(--warn)}.g-bad{--tone:var(--danger)}
+.stat.k-exam{--tone:var(--orange)}.stat.k-todo{--tone:var(--accent)}.stat.k-event{--tone:var(--accent2)}
 .stat[class*=" g-"] b{color:var(--tone)}
 .gchip{flex:none;min-width:48px;height:36px;padding:0 8px;border-radius:var(--radius-s);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3125rem;
   color:var(--tone,var(--text));background:color-mix(in srgb,var(--tone,var(--muted)) 12%,transparent);border:1px solid color-mix(in srgb,var(--tone,var(--muted)) 40%,transparent)}
@@ -1333,9 +1349,9 @@ function updateSyncUI() {
 }
 
 /* ---------- Ansicht: Start (Dashboard) ---------- */
-function dashSection(title, link, rows) {
+function dashSection(title, link, rows, k = '') {
   if (!rows.length) return '';
-  return `<section><div class="sec-h"><h2>${esc(title)}</h2>${link ? `<a href="#${link}">Alle</a>` : ''}</div><div class="card">${rows.join('')}</div></section>`;
+  return `<section><div class="sec-h${k ? ' kc" style="--k:' + k : ''}"><h2>${esc(title)}</h2>${link ? `<a href="#${link}">Alle</a>` : ''}</div><div class="card">${rows.join('')}</div></section>`;
 }
 const WD_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 function weekStripHTML(t0) {
@@ -1349,7 +1365,7 @@ function weekStripHTML(t0) {
     const tt = effectiveDayType(dy), ov = dayOverride(dy), showT = tt && (!hol || ov);
     const hasItems = live('exams').some(e => e.date === dy) || eventsOnDay(dy).length > 0 || openDue.has(dy);
     const label = [fmtDate(dy), showT ? tt.name : '', hol || '', hasItems ? 'mit Einträgen' : ''].filter(Boolean).join(', ');
-    h += `<button class="wk-day ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${hol ? 'holiday' : ''} ${hol && !showT ? 'hatch' : ''} ${ov ? 'override' : ''}"${showT ? ` style="--c:${tt.color}"` : ''} data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
+    h += `<button class="wk-day ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${d.getDay() === 0 ? 'sun' : ''} ${hol ? 'holiday' : ''} ${hol && !showT ? 'hatch' : ''} ${ov ? 'override' : ''}"${showT ? ` style="--c:${tt.color}"` : ''} data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
       <small>${WD_SHORT[i]}</small><span class="dn">${d.getDate()}</span>${hasItems ? '<i class="idot"></i>' : ''}<span class="band"></span></button>`;
   }
   return h + `</div>`;
@@ -1376,10 +1392,10 @@ function vDashboard() {
   const rest = sortTodos(openTodos.filter(t => !(t.due && t.due <= t0)));
   const nextExams = upcomingExams(3), nextEvents = upcomingEvents(3);
   let h = `<section>${todayHeroHTML(t0)}</section>`;
-  h += dashSection('Fällig', '/todo', [...overdue, ...dueToday].map(t => todoRow(t)));
-  h += dashSection('Aufgaben', '/todo', rest.slice(0, 8).map(t => todoRow(t)));
-  h += dashSection('Anstehende Arbeiten', '/cal', nextExams.map(examRow));
-  h += dashSection('Anstehende Termine', '/cal', nextEvents.map(e => eventRow(e)));
+  h += dashSection('Fällig', '/todo', [...overdue, ...dueToday].map(t => todoRow(t)), 'var(--brand)');
+  h += dashSection('Aufgaben', '/todo', rest.slice(0, 8).map(t => todoRow(t)), 'var(--accent)');
+  h += dashSection('Anstehende Arbeiten', '/cal', nextExams.map(examRow), 'var(--orange)');
+  h += dashSection('Anstehende Termine', '/cal', nextEvents.map(e => eventRow(e)), 'var(--accent2)');
   if (!overdue.length && !dueToday.length && !rest.length && !nextExams.length && !nextEvents.length) {
     h += `<div class="card empty">${ic('check')}<p>Nichts Dringendes. Trage Aufgaben, Arbeiten oder Termine ein, dann tauchen sie hier auf.</p></div>`;
   }
@@ -1393,8 +1409,8 @@ function vInhalte() {
   const years = f === 'alltag' ? [] : live('years').sort((a, b) => b.createdAt - a.createdAt);
   const alltagFs = f === 'schule' ? [] : altagFields();
   let h = spaceSwitcher();
-  if (openTodos.length) h += `<section><div class="sec-h"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${openTodos.map(t => todoRow(t)).join('')}</div></section>`;
-  else h += `<section><div class="sec-h"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card empty" style="padding:18px">${ic('check')}<p style="margin:4px auto">Nichts offen.</p></div></section>`;
+  if (openTodos.length) h += `<section><div class="sec-h kc" style="--k:var(--accent)"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card">${openTodos.map(t => todoRow(t)).join('')}</div></section>`;
+  else h += `<section><div class="sec-h kc" style="--k:var(--accent)"><h2>Aufgaben</h2><a href="#/todo">Alle Aufgaben</a></div><div class="card empty" style="padding:18px">${ic('check')}<p style="margin:4px auto">Nichts offen.</p></div></section>`;
   h += `<section><div class="sec-h"><h2>Schuljahre &amp; Kategorien</h2><div style="display:flex;gap:6px">${f !== 'alltag' ? `<button class="btn small" data-a="year-new">${ic('plus')} Schuljahr</button>` : ''}${f !== 'schule' ? `<button class="btn small" data-a="field-new">${ic('plus')} Kategorie</button>` : ''}</div></div>`;
   if (!years.length && !alltagFs.length) {
     h += `<div class="card empty">${ic('folder')}<p>Willkommen bei LifeVault! Lege dein erstes Schuljahr oder deine erste Alltags-Kategorie an. Darin sammelst du Lernfelder, Unterlagen, Notizen und Fotos.</p>
@@ -1488,13 +1504,13 @@ function fieldOverviewHTML(f, sp, todos) {
     const nx = upcoming[0];
     h += `<div class="stats">
       ${statTile('Durchschnitt', grades.length ? `Ø ${fmtAvg(avg)}` : '–', grades.length ? `${grades.length} ${grades.length === 1 ? 'Note' : 'Noten'}` : 'keine Noten', grades.length ? gradeTone(avg) : '')}
-      ${statTile('Nächste LK', nx ? esc(fmtDue(nx.date)) : '–', nx ? esc(nx.title) : 'nichts geplant', nx && daysBetween(t0, nx.date) <= 3 ? 'g-warn' : '', nx ? `data-a="exam-edit" data-id="${nx.id}"` : '')}
-      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), '', 'data-a="ftab" data-v="todos"')}
+      ${statTile('Nächste LK', nx ? esc(fmtDue(nx.date)) : '–', nx ? esc(nx.title) : 'nichts geplant', nx && daysBetween(t0, nx.date) <= 3 ? 'g-warn' : 'k-exam', nx ? `data-a="exam-edit" data-id="${nx.id}"` : '')}
+      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), 'k-todo', 'data-a="ftab" data-v="todos"')}
     </div>`;
-    h += `<section><div class="sec-h"><h2>Noten</h2><button class="btn small" data-a="grade-new" data-f="${id}">${ic('plus')} Note</button></div>`;
+    h += `<section><div class="sec-h kc" style="--k:var(--ok)"><h2>Noten</h2><button class="btn small" data-a="grade-new" data-f="${id}">${ic('plus')} Note</button></div>`;
     h += grades.length ? `<div class="card">${grades.map(gradeRow).join('')}</div>`
       : `<p class="hint" style="margin:0 2px">Noch keine Noten. Trag hier deine LK-, Test- oder mündlichen Noten ein – der Durchschnitt wird automatisch berechnet.</p>`;
-    h += `</section><section><div class="sec-h"><h2>LKs &amp; Arbeiten</h2><button class="btn small" data-a="exam-new" data-f="${id}">${ic('plus')} LK</button></div>`;
+    h += `</section><section><div class="sec-h kc" style="--k:var(--orange)"><h2>LKs &amp; Arbeiten</h2><button class="btn small" data-a="exam-new" data-f="${id}">${ic('plus')} LK</button></div>`;
     h += upcoming.length ? `<div class="card">${upcoming.map(e => examRow(e, { noField: true })).join('')}</div>`
       : `<p class="hint" style="margin:0 2px">Keine anstehende LK. Was du im Kalender für dieses Lernfeld einträgst, erscheint hier.</p>`;
     if (past.length) h += `<details class="more" style="margin-top:10px"><summary>${ic('cal')} Vergangene LKs (${past.length})</summary><div class="card" style="margin-top:8px">${past.map(e => examRow(e, { noField: true })).join('')}</div></details>`;
@@ -1503,16 +1519,16 @@ function fieldOverviewHTML(f, sp, todos) {
     const evs = live('events').filter(e => e.fieldId === id).map(e => ({ e, occ: nextOccurrence(e, t0) })).filter(x => x.occ).sort((a, b) => a.occ.localeCompare(b.occ));
     const nx = evs[0];
     h += `<div class="stats">
-      ${statTile('Nächster Termin', nx ? esc(fmtDue(nx.occ)) : '–', nx ? esc(nx.e.title) : 'nichts geplant', '', nx ? `data-a="event-edit" data-id="${nx.e.id}"` : '')}
-      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), '', 'data-a="ftab" data-v="todos"')}
+      ${statTile('Nächster Termin', nx ? esc(fmtDue(nx.occ)) : '–', nx ? esc(nx.e.title) : 'nichts geplant', 'k-event', nx ? `data-a="event-edit" data-id="${nx.e.id}"` : '')}
+      ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), 'k-todo', 'data-a="ftab" data-v="todos"')}
       ${statTile('Unterlagen', String(docsOfField(id).length), 'gespeichert', '', 'data-a="ftab" data-v="docs"')}
     </div>`;
-    h += `<section><div class="sec-h"><h2>Termine</h2><button class="btn small" data-a="event-new" data-f="${id}">${ic('plus')} Termin</button></div>`;
+    h += `<section><div class="sec-h kc" style="--k:var(--accent2)"><h2>Termine</h2><button class="btn small" data-a="event-new" data-f="${id}">${ic('plus')} Termin</button></div>`;
     h += evs.length ? `<div class="card">${evs.slice(0, 5).map(x => eventRow(x.e, x.occ)).join('')}</div>`
       : `<p class="hint" style="margin:0 2px">Keine anstehenden Termine in dieser Kategorie.</p>`;
     h += `</section>`;
   }
-  h += `<section><div class="sec-h"><h2>Offene Aufgaben</h2>${open.length > 4 ? `<button type="button" class="linkbtn" data-a="ftab" data-v="todos">Alle ${open.length}</button>` : ''}</div>`;
+  h += `<section><div class="sec-h kc" style="--k:var(--accent)"><h2>Offene Aufgaben</h2>${open.length > 4 ? `<button type="button" class="linkbtn" data-a="ftab" data-v="todos">Alle ${open.length}</button>` : ''}</div>`;
   h += open.length ? `<div class="card">${open.slice(0, 4).map(t => todoRow(t, { noField: true })).join('')}</div>`
     : `<p class="hint" style="margin:0 2px">Keine offenen Aufgaben. ${ic('check')}</p>`;
   h += `</section>`;
@@ -1608,7 +1624,7 @@ function vDoc(id) {
       <p class="hint">Jedes Foto ist eine Seite. Tippe ein Foto an, um es zu vergrößern, zu drehen, zu beschriften oder die Reihenfolge zu ändern.</p></div></section>`;
   }
   h += `<section style="margin-top:22px"><div class="sec-h"><h2>Notizen</h2></div>${noteBox(`docs.${id}.note`, d.note, 'Deine Notizen zu dieser Unterlage …')}</section>`;
-  h += `<section><div class="sec-h"><h2>Aufgaben dazu</h2></div>${todoSection({ fieldId: d.fieldId, docId: id }, live('todos').filter(t => t.docId === id), { noField: true, noDoc: true })}</section>`;
+  h += `<section><div class="sec-h kc" style="--k:var(--accent)"><h2>Aufgaben dazu</h2></div>${todoSection({ fieldId: d.fieldId, docId: id }, live('todos').filter(t => t.docId === id), { noField: true, noDoc: true })}</section>`;
   return { title: d.title || 'Ohne Titel', back: f ? `/f/${f.id}` : '/inhalte', actions: `<button class="icon-btn" data-a="doc-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
 /* =====================================================================
@@ -2223,7 +2239,7 @@ function examRow(e, opt = {}) {
   const f = byId('fields', e.fieldId), d = daysBetween(today(), e.date);
   const soon = e.remind != null && d >= 0 && d <= e.remind;
   return `<div class="todo ${soon ? 'p2' : ''}" data-a="exam-edit" data-id="${e.id}" style="cursor:pointer">
-    <span class="ico" style="background:${f ? f.color : 'var(--accent)'};color:#fff">${ic('warn')}</span>
+    <span class="ico" style="background:${f ? f.color : 'var(--orange)'};color:#fff">${ic('warn')}</span>
     <div class="tbody"><div class="ttl">${esc(e.title)}</div>
       <div class="tmeta">${f && !opt.noField ? `<span class="tag fld" style="--c:${f.color}">${esc(f.name)}</span>` : ''}
       <span class="tag ${d < 0 ? 'due-over' : d === 0 ? 'due-today' : ''}">${ic('cal')}${esc(fmtDue(e.date))}</span>
@@ -2402,12 +2418,12 @@ function vCalMonth() {
       const dayExams = cf === 'alltag' ? [] : live('exams').filter(e => e.date === dy);
       const dayEvents = cf === 'schule' ? [] : eventsOnDay(dy);
       const total = dayExams.length + dayEvents.length;
-      const dots = [...dayExams.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="exam" style="background:${f ? f.color : 'var(--accent)'}"></i>`; }),
+      const dots = [...dayExams.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="exam" style="background:${f ? f.color : 'var(--orange)'}"></i>`; }),
         ...dayEvents.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="event" style="background:${f ? f.color : '#0ea5e9'}"></i>`; })].slice(0, 4).join('');
       const showT = tt && (!hol || ov);   // Feiertag ist frei, außer der Tag wurde ausdrücklich einer Turnus-Art zugeordnet
       const bg = showT ? hexA(tt.color, .18) : (weekend && !hol ? 'var(--bg)' : '');
       const label = [fmtDate(dy), total ? total + ' Eintrag/Einträge' : '', showT ? tt.name : '', hol || ''].filter(Boolean).join(', ');
-      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''}" style="${bg ? `background-color:${bg}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
+      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${d.getDay() === 0 ? 'sun' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''}" style="${bg ? `background-color:${bg}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
         <span class="dn">${d.getDate()}${hol ? '<i class="holidot"></i>' : ''}</span>
         ${total ? `<span class="dots">${dots}</span>` : ''}</button>`;
     });

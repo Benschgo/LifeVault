@@ -12,7 +12,13 @@ Persönliche PWA für Schule und Alltag: Unterlagen (mit Fotos/Dateien), Notizen
 
 ## Gestaltung („Werkstatt“)
 
-- Farben nur über die CSS-Variablen im `:root`-Block (hell und dunkel): `--bg` Zeichengrau, `--text` Tusche, `--accent` Leitungsblau für Bedienelemente und Links, `--signal` Signalgelb **nur** für „heute/jetzt“ und die Hauptaktion (`.fab`), `--danger` für überfällig und Feiertage.
+- Farben nur über die CSS-Variablen im `:root`-Block (hell und dunkel). Jede Farbe hat eine feste Rolle:
+  - `--brand` **Rot** (Bennys Lieblingsfarbe, Hausfarbe): Hauptbuttons (`.btn.primary`), Plus-Taster (`.fab`), aktiver Menüpunkt, Kante am Tageskopf, Abschnitt „Fällig“. Nicht großflächig einsetzen.
+  - `--danger` (gleiches Rot): überfällig, Sonn- und Feiertage (wie im Wandkalender).
+  - `--signal` **Gelb**: nur „heute/jetzt“.
+  - `--accent` **Blau**: Links, Fokus, Aufgaben, Bereich Schule. `--accent2` **Türkis**: Termine, Bereich Alltag. `--orange`: Arbeiten/LKs. `--ok` **Grün**: Noten.
+  - `--text` Tusche für Text und Umschalter, `--bg` Zeichengrau als Grund.
+- Abschnittsköpfe nach Inhaltstyp einfärben: `class="sec-h kc" style="--k:var(--orange)"` (Linie + Farbquadrat); Übersichtskacheln mit `k-exam`, `k-todo`, `k-event`.
 - Schrift: `--font-d` (DIN: Bahnschrift, Roboto Condensed …) für Titel, Zahlen, Schilder und Buttons; Fließtext bleibt Systemschrift. Keine Großbuchstaben-Labels.
 - Kleine Radien (`--radius` 6 px, `--radius-s` 3 px), Linien statt weicher Schatten. Abschnittsköpfe (`.sec-h`) mit dicker Linie darunter.
 - Lernfeld-/Kategorie-Farbe als „Ader“: `.todo.wired` mit `--c`, Feld-Schilder `.tag.fld` mit `--c` (Farbquadrat statt farbiger Fläche).
