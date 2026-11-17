@@ -25,6 +25,8 @@
   --font-d:"Bahnschrift","DIN Alternate","DIN 2014","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;
   --hatch:repeating-linear-gradient(135deg,color-mix(in srgb,var(--danger) 30%,transparent) 0 1.5px,transparent 1.5px 6px);
   /* Hintergrund: Zeichenraster + Lichtverlauf (sehr zurückhaltend) */
+  /* Kalendertage: deckende Flächen, aus Grund- und Kartenfarbe gemischt (hell und dunkel) */
+  --cell:color-mix(in srgb,var(--text) 5%,var(--card));--cell-we:color-mix(in srgb,var(--bg) 75%,var(--card));--cell-out:color-mix(in srgb,var(--bg) 55%,var(--card));
   --bg-top:#eef1f4;--bg-bottom:#dde2e7;--grid:rgba(24,33,44,.07);--grid-major:rgba(24,33,44,.12);--glow:rgba(200,16,46,.09);--glow2:rgba(29,95,170,.09);
   --nav-h:62px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
   color-scheme:light;
@@ -316,11 +318,20 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 .cal-head{font-size:.85rem;color:var(--muted);text-align:center;font-weight:500;padding-bottom:4px}
 .cal-wk{border:0;background:transparent;color:var(--muted);font-size:.78rem;font-weight:500;border-radius:var(--radius-s);cursor:pointer;padding:8px 0 0;display:flex;justify-content:center;align-items:flex-start}
 .cal-wk:hover{background:var(--accent-soft);color:var(--accent)}
-.cal-day{position:relative;aspect-ratio:1/1;border:0;border-radius:var(--radius-s);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:5px 2px 4px;cursor:pointer;color:var(--text)}
-.cal-day:hover{box-shadow:inset 0 0 0 1px var(--line-strong)}
+/* Monatskalender auf eigener Fläche; jeder Tag deckend (nichts vom Hintergrund scheint durch) */
+.cal-panel{padding:8px 8px 10px}
+@media (min-width:900px){.cal-panel{padding:12px 12px 14px}}
+.cal-panel .legend{margin-top:12px;padding:10px 4px 0;border-top:1px solid var(--line)}
+.cal-day{position:relative;aspect-ratio:1/1;border:0;border-radius:var(--radius-s);background-color:var(--cell);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:5px 2px 4px;cursor:pointer;color:var(--text)}
+.cal-day:hover{outline:1px solid var(--line-strong);outline-offset:-1px}
 .cal-day .dn{font-size:1rem;font-weight:500;line-height:1}
+.cal-day.today{outline:2px solid var(--signal);outline-offset:-2px}
 .cal-day.today .dn{background:var(--signal);color:var(--signal-ink);min-width:24px;height:22px;padding:0 3px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-weight:700}
-.cal-day.out{opacity:.32}
+.cal-day.weekend{background-color:var(--cell-we)}
+.cal-day.tt{background-color:color-mix(in srgb,var(--tc) 22%,var(--cell));box-shadow:inset 0 -5px 0 var(--tc)}
+.cal-day.out{background-color:var(--cell-out);box-shadow:none}
+.cal-day.out>*{opacity:.38}
+.cal-day.out.holiday{background-image:none}
 .cal-day.weekend .dn{color:var(--muted)}
 /* Feiertag: schraffiert wie eine freie Fläche auf der Zeichnung */
 .cal-day.holiday{background-image:var(--hatch)}
@@ -341,7 +352,7 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 .tw-chips{display:flex;flex-wrap:wrap;gap:6px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;font-size:.92rem;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:18px;height:10px;border-radius:1px;background:var(--c);display:block}
+.legend i{width:20px;height:14px;border-radius:2px;background:linear-gradient(to top,var(--c) 0 4px,color-mix(in srgb,var(--c) 22%,var(--cell)) 4px);display:block}
 .legend i.hol{background:var(--hatch);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 40%,transparent)}
 @media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.9rem}.calnav b{font-size:1.125rem}}
 
@@ -2403,7 +2414,7 @@ function vCalMonth() {
     <button class="chip btnlike ${cf === 'schule' ? 'on' : ''}" data-a="calf" data-v="schule">${ic('book')} Schule</button>
     <button class="chip btnlike ${cf === 'alltag' ? 'on' : ''}" data-a="calf" data-v="alltag">${ic('home')} Alltag</button></div>`;
   if (!bl) h += `<p class="hint" style="margin:0 2px 10px">Feiertage automatisch anzeigen: <a href="#/settings">Bundesland in den Optionen wählen</a>.</p>`;
-  h += `<div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
+  h += `<div class="card cal-panel"><div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
   rows.forEach(row => {
     const wk = ymd(row[0]);
     h += `<button class="cal-wk" data-a="cal-week" data-week="${wk}" aria-label="Turnus für KW ${isoWeekNum(row[0])} wählen">${isoWeekNum(row[0])}</button>`;
@@ -2416,16 +2427,16 @@ function vCalMonth() {
       const dots = [...dayExams.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="exam" style="background:${f ? f.color : 'var(--orange)'}"></i>`; }),
         ...dayEvents.slice(0, 4).map(e => { const f = byId('fields', e.fieldId); return `<i class="event" style="background:${f ? f.color : '#0ea5e9'}"></i>`; })].slice(0, 4).join('');
       const showT = tt && (!hol || ov);   // Feiertag ist frei, außer der Tag wurde ausdrücklich einer Turnus-Art zugeordnet
-      const bg = showT ? hexA(tt.color, .18) : (weekend && !hol ? 'var(--bg)' : '');
+      const tint = showT && inMonth;   // Turnus: deckende Tönung + Farbband unten (nur im angezeigten Monat)
       const label = [fmtDate(dy), total ? total + ' Eintrag/Einträge' : '', showT ? tt.name : '', hol || ''].filter(Boolean).join(', ');
-      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${d.getDay() === 0 ? 'sun' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''}" style="${bg ? `background-color:${bg}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
+      h += `<button class="cal-day ${inMonth ? '' : 'out'} ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${d.getDay() === 0 ? 'sun' : ''} ${hol ? 'holiday' : ''} ${ov ? 'override' : ''} ${tint ? 'tt' : ''}" style="${tint ? `--tc:${tt.color}` : ''}" data-a="cal-day" data-date="${dy}" aria-label="${esc(label)}"${isToday ? ' aria-current="date"' : ''}>
         <span class="dn">${d.getDate()}${hol ? '<i class="holidot"></i>' : ''}</span>
         ${total ? `<span class="dots">${dots}</span>` : ''}</button>`;
     });
   });
   h += `</div>`;
-  if (types.size || bl) h += `<div class="legend">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span><i style="--c:${hexA(t.color, .55)}"></i>${esc(t.name)} (${esc(daysLabel(t.days))})</span>`).join('')}${bl ? `<span><i class="hol"></i>Feiertag</span>` : ''}</div>`;
-  h += `<button class="fab" data-a="cal-new">${ic('plus')} Eintrag</button>`;
+  if (types.size || bl) h += `<div class="legend">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span><i style="--c:${t.color}"></i>${esc(t.name)} (${esc(daysLabel(t.days))})</span>`).join('')}${bl ? `<span><i class="hol"></i>Feiertag</span>` : ''}</div>`;
+  h += `</div><button class="fab" data-a="cal-new">${ic('plus')} Eintrag</button>`;
   return h;
 }
 function vCalTurnus() {
