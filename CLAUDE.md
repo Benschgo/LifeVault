@@ -81,7 +81,8 @@ Wichtige Muster:
 
 ## Veröffentlichen
 
-- Veröffentlicht wird mit **`/release`** (startet nur Benny): Stand von GitHub holen, Cache-Version in `sw.js` hochzählen, Syntax und Datenformat prüfen, nach Tokens suchen, auf `main` pushen. GitHub Pages ist nach ca. einer Minute aktuell.
+- Veröffentlicht wird mit **`/release`** (startet nur Benny): Stand von GitHub holen, Versionsnummer festlegen, Cache-Version in `sw.js` hochzählen, Syntax und Datenformat prüfen, nach Tokens suchen, auf `main` pushen. GitHub Pages ist nach ca. einer Minute aktuell.
+- **Versionsnummer** `APP_VERSION` in `index.html` (unten in den Optionen sichtbar), Schema Groß.Mittel.Klein: Jede Veröffentlichung mit einer Änderung an der App oder am Push-Dienst erhöht sie – die Stufe entscheidet Claude nach dem, was Benny merkt (Kriterien und bisherige Versionen in `.claude/skills/release/SKILL.md`, Schritt 3). Dazu ein Git-Tag `vX.Y.Z`. Die Nummer geht nie zurück.
 - Hochgeladen wird per `git push`, kein GitHub-MCP nötig (das bräuchte einen Token, und der gehört nicht in dieses öffentliche Repo).
 - Der Service Worker (`sw.js`) lädt immer zuerst aus dem Netz, der Cache dient nur als Offline-Reserve. Erst eine geänderte `sw.js` (neue Cache-Version) lässt Handy und Laptop den neuen Service Worker installieren.
 
