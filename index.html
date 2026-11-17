@@ -303,6 +303,10 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 .pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
 .pill.err{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
 .pill.off{background:var(--line);color:var(--muted)}
+.push-box{margin-top:16px;padding-top:14px;border-top:2px solid var(--line)}
+.push-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.push-h h3{font-family:var(--font-d);font-size:1.05rem;font-weight:600}
+.push-h .pill{white-space:nowrap;flex-shrink:0}
 .snip{font-size:.85rem;color:var(--muted)}
 .snip mark{background:color-mix(in srgb,var(--warn) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
 
@@ -790,7 +794,27 @@ function eventSoonCount() {
   }).length;
 }
 
-/* ---------- Lokale Popup-Benachrichtigungen (funktionieren nur, solange die App offen/im Hintergrund läuft – GitHub Pages hat keinen eigenen Push-Server) ---------- */
+/* ---------- Popup-Benachrichtigungen ----------
+   Lokal (hier) nur, solange die App offen ist/im Hintergrund läuft. Bei geschlossener App schickt sie der
+   Push-Dienst im Daten-Repo (dienst/erinnerungen.mjs) – mit denselben Regeln, Schlüsseln und Texten.
+   Wer triggerTs/nextOccurrence/checkNotifications ändert, zieht dienst/erinnerungen.mjs mit.
+   Damit nichts doppelt piept, merken sich App und Service Worker gezeigte Schlüssel im Cache 'sv-push-seen'. */
+const PUSH_SEEN = 'sv-push-seen';
+async function pushSeenKeys() {
+  try {
+    const c = await caches.open(PUSH_SEEN);
+    return new Set((await c.keys()).map(r => decodeURIComponent(r.url.split('/__seen/')[1] || '')));
+  } catch (e) { return new Set(); }
+}
+function markPushSeen(key) {
+  try { caches.open(PUSH_SEEN).then(c => c.put(new Request('./__seen/' + encodeURIComponent(key)), new Response(String(now())))).catch(() => {}); } catch (e) { /* kein Cache-Speicher */ }
+}
+async function prunePushSeen(cutoff) {
+  try {
+    const c = await caches.open(PUSH_SEEN);
+    for (const r of await c.keys()) { const m = await c.match(r); if (!(Number(m && await m.text()) >= cutoff)) await c.delete(r); }
+  } catch (e) { /* egal */ }
+}
 function triggerTs(dateYmd, remindDays, timeHHMM) {
   if (remindDays == null || !dateYmd) return null;
   const d = parseYmd(dateYmd); d.setDate(d.getDate() - remindDays);
@@ -808,11 +832,21 @@ async function showNotif(title, body, url) {
     }
   } catch (e) { /* z. B. Berechtigung inzwischen entzogen */ }
 }
-function checkNotifications() {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+let notifBusy = false;
+async function checkNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'granted' || notifBusy) return;
+  notifBusy = true;
+  try { await checkNotificationsNow(); } finally { notifBusy = false; }
+}
+async function checkNotificationsNow() {
+  const viaPush = await pushSeenKeys();   // schon per Push gezeigt → hier nicht noch mal
   let seen; try { seen = JSON.parse(localStorage.getItem('sv_notified') || '{}'); } catch (e) { seen = {}; }
   const nowTs = now(); let changed = false;
-  const fire = (key, title, body, url) => { if (seen[key]) return; showNotif(title, body, url); seen[key] = nowTs; changed = true; };
+  const fire = (key, title, body, url) => {
+    if (seen[key]) return;
+    if (!viaPush.has(key)) { showNotif(title, body, url); markPushSeen(key); }
+    seen[key] = nowTs; changed = true;
+  };
   live('todos').filter(t => !t.done && t.due).forEach(t => {
     const ts = triggerTs(t.due, t.remind, t.notifyTime); if (ts == null || nowTs < ts) return;
     const f = byId('fields', t.fieldId);
@@ -833,6 +867,7 @@ function checkNotifications() {
     const cutoff = nowTs - 60 * 86400000;
     Object.keys(seen).forEach(k => { if (seen[k] < cutoff) delete seen[k]; });
     localStorage.setItem('sv_notified', JSON.stringify(seen));
+    prunePushSeen(cutoff);
   }
 }
 
@@ -1145,6 +1180,130 @@ async function ensureBlob(a) {
 async function testConnection(c) {
   const r = await (await gh(c, 'GET', `/repos/${c.repo}`)).json();
   return { branch: r.default_branch || 'main', canPush: !r.permissions || r.permissions.push !== false, priv: r.private };
+}
+
+/* ---------- Push: Erinnerungen auch bei geschlossener App ----------
+   Der Dienst läuft als GitHub Action im Daten-Repo (.github/workflows/erinnerungen.yml → dienst/erinnerungen.mjs).
+   Die App legt dafür im Daten-Repo an: push/vapid.json (Push-Schlüssel, einmalig) und push/geraete.json
+   (ein Eintrag pro Gerät mit Push-Abo). push/status.json schreibt nur der Dienst (gesendet, tote Abos, Tests).
+   Auf dem Gerät: localStorage sv_push = { on, id, endpoint, checked }. Nichts davon gehört zu data.json. */
+const PUSH_OK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function pushCfg() { try { return JSON.parse(localStorage.getItem('sv_push') || '{}') || {}; } catch (e) { return {}; } }
+function savePushCfg(p) { localStorage.setItem('sv_push', JSON.stringify(p)); }
+const pushOn = () => PUSH_OK && !!pushCfg().on;
+const b64u = buf => { const b = new Uint8Array(buf); let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), ch => ch.charCodeAt(0));
+const endpointId = async ep => b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ep))).slice(0, 16);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function ghJson(c, path) {
+  try {
+    const j = await (await gh(c, 'GET', `/repos/${c.repo}/contents/${path}?ref=${encodeURIComponent(c.branch || 'main')}`)).json();
+    const bin = atob((j.content || '').replace(/\s/g, ''));
+    return { data: JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))) || 'null'), sha: j.sha };
+  } catch (e) { if (e.status === 404) return { data: null, sha: null }; throw e; }
+}
+const ghPutJson = (c, path, data, sha, message) => gh(c, 'PUT', `/repos/${c.repo}/contents/${path}`,
+  { message, content: strToB64(JSON.stringify(data, null, 1) + '\n'), branch: c.branch, sha: sha || undefined });
+
+function deviceName() {
+  const u = navigator.userAgent;
+  const os = /Android/.test(u) ? 'Android' : /iPhone|iPad/.test(u) ? 'iPhone/iPad' : /Windows/.test(u) ? 'Windows' : /Mac OS X/.test(u) ? 'Mac' : /CrOS/.test(u) ? 'Chromebook' : /Linux/.test(u) ? 'Linux' : 'Gerät';
+  const br = /Edg\//.test(u) ? 'Edge' : /SamsungBrowser/.test(u) ? 'Samsung Internet' : /Firefox\//.test(u) ? 'Firefox' : /OPR\//.test(u) ? 'Opera' : /Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'Browser';
+  return os + ', ' + br;
+}
+/* Push-Schlüssel (VAPID) holen bzw. beim allerersten Mal erzeugen und ins private Daten-Repo legen */
+async function pushVapid(c) {
+  const cur = (await ghJson(c, 'push/vapid.json')).data;
+  if (cur && cur.publicKey && cur.jwk) return cur;
+  const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const v = { v: 1, publicKey: b64u(await crypto.subtle.exportKey('raw', kp.publicKey)), jwk: { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y, d: jwk.d },
+    subject: location.protocol === 'https:' ? new URL('./', location.href).href : '', createdAt: now() };
+  try { await ghPutJson(c, 'push/vapid.json', v, null, 'Push: Schlüssel angelegt'); return v; }
+  catch (e) {
+    if (e.status === 409 || e.status === 422) { const again = (await ghJson(c, 'push/vapid.json')).data; if (again && again.publicKey) return again; }   // anderes Gerät war schneller
+    throw e;
+  }
+}
+/* push/geraete.json lesen, ändern, schreiben – bei gleichzeitigen Änderungen neu versuchen */
+async function pushEditDevices(c, message, fn) {
+  for (let i = 0; ; i++) {
+    const { data, sha } = await ghJson(c, 'push/geraete.json');
+    const doc = data && Array.isArray(data.geraete) ? data : { v: 1, geraete: [] };
+    if (fn(doc.geraete) === false) return doc;   // nichts zu ändern
+    try { await ghPutJson(c, 'push/geraete.json', doc, sha, message); return doc; }
+    catch (e) { if ((e.status === 409 || e.status === 422) && i < 3) { await sleep(1200 * (i + 1)); continue; } throw e; }
+  }
+}
+async function pushSubscription(vapid) {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  const key = sub && sub.options && sub.options.applicationServerKey;
+  if (sub && (!key || b64u(key) !== vapid.publicKey)) { await sub.unsubscribe().catch(() => {}); sub = null; }
+  return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(vapid.publicKey) });
+}
+async function pushEnable() {
+  const c = cfg();
+  if (!PUSH_OK) throw new Error('Dieser Browser kann keine Push-Nachrichten empfangen');
+  if (!configured()) throw new Error('Richte zuerst den Sync ein – Push braucht dein Daten-Repo');
+  if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error('Benachrichtigungen sind für diese Seite nicht erlaubt');
+  const vapid = await pushVapid(c);
+  const st = (await ghJson(c, 'push/status.json')).data, tot = (st && st.tot) || {};
+  let sub = await pushSubscription(vapid);
+  if (tot[await endpointId(sub.endpoint)]) { await sub.unsubscribe().catch(() => {}); sub = await pushSubscription(vapid); }   // Dienst meldet das Abo als abgelaufen
+  const j = sub.toJSON(), p = pushCfg(), id = p.id || uid(), name = deviceName();
+  const dead = new Set();
+  for (const g of ((await ghJson(c, 'push/geraete.json')).data || {}).geraete || []) if (g && g.endpoint && tot[await endpointId(g.endpoint)]) dead.add(g.endpoint);
+  await pushEditDevices(c, 'Push: ' + name + ' aktiviert', list => {
+    // Aufräumen: abgelaufene Abos und dieselbe Adresse unter anderer ID (z. B. nach „Alles löschen“)
+    for (let i = list.length - 1; i >= 0; i--) if (list[i].id !== id && (list[i].endpoint === j.endpoint || dead.has(list[i].endpoint))) list.splice(i, 1);
+    let me = list.find(g => g.id === id);
+    if (!me) { me = { id, createdAt: now() }; list.push(me); }
+    Object.assign(me, { name, endpoint: j.endpoint, keys: { p256dh: j.keys.p256dh, auth: j.keys.auth }, updatedAt: now() });
+    delete me.test;
+  });
+  savePushCfg({ on: true, id, endpoint: j.endpoint, checked: now() });
+}
+async function pushDisable() {
+  const p = pushCfg();
+  try { const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) { /* schon weg */ }
+  savePushCfg({ id: p.id });
+  if (!configured() || !p.id) return true;
+  try {
+    await pushEditDevices(cfg(), 'Push: ' + deviceName() + ' ausgeschaltet', list => {
+      const n = list.length; for (let i = list.length - 1; i >= 0; i--) if (list[i].id === p.id || list[i].endpoint === p.endpoint) list.splice(i, 1);
+      return list.length !== n;
+    });
+    return true;
+  } catch (e) { return false; }   // egal: das Abo ist abgemeldet, der Dienst sortiert es beim nächsten Lauf aus
+}
+/* Testnachricht: im eigenen Geräte-Eintrag vormerken und den Dienst möglichst sofort starten */
+async function pushTest(again) {
+  const c = cfg(), p = pushCfg();
+  const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+  const neu = async () => { if (again) throw new Error('Push ließ sich nicht neu anmelden – schalte es aus und wieder ein'); await pushEnable(); return pushTest(true); };
+  if (!sub || sub.endpoint !== p.endpoint) return neu();
+  const stamp = new Date().toISOString(); let found = false;
+  await pushEditDevices(c, 'Push: Testnachricht angefordert', list => { const me = list.find(g => g.id === p.id); if (me) { me.test = stamp; found = true; } return found; });
+  if (!found) return neu();
+  try { await gh(c, 'POST', `/repos/${c.repo}/actions/workflows/erinnerungen.yml/dispatches`, { ref: c.branch || 'main' }); return true; }
+  catch (e) { return false; }   // Token darf Actions nicht starten → nächster regulärer Lauf
+}
+/* Beim Start: Abo noch gültig und im Daten-Repo eingetragen? Sonst still neu anmelden (höchstens alle 12 h im Netz prüfen) */
+async function pushCheck() {
+  const p = pushCfg();
+  if (!pushOn() || !configured() || !navigator.onLine || Notification.permission !== 'granted') return;
+  try {
+    const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+    if (sub && sub.endpoint === p.endpoint) {
+      if (now() - (p.checked || 0) < 12 * 3600e3) return;
+      const c = cfg(), st = (await ghJson(c, 'push/status.json')).data;
+      const dead = !!(st && st.tot && st.tot[await endpointId(sub.endpoint)]);
+      const doc = (await ghJson(c, 'push/geraete.json')).data;
+      if (!dead && doc && (doc.geraete || []).some(g => g.id === p.id && g.endpoint === sub.endpoint)) { savePushCfg(Object.assign(p, { checked: now() })); return; }
+    }
+    await pushEnable();
+  } catch (e) { /* nächster Start versucht es erneut */ }
 }
 
 /* ---------- Sicherung (nur Daten, ohne Dateien) ---------- */
@@ -1823,12 +1982,22 @@ function notifPill() {
 function vSettings() {
   const c = cfg(), on = configured();
   const cnt = k => live(k).length;
+  const granted = 'Notification' in window && Notification.permission === 'granted', pOn = pushOn();
   let h = `<section><div class="sec-h"><h2>Benachrichtigungen</h2><span id="notifstat">${notifPill()}</span></div><div class="card pad">
-    <p class="muted" style="margin:0 0 10px">Popup-Erinnerungen für Aufgaben, Arbeiten und Termine, die du pro Eintrag einzeln ein- und ausschalten kannst (im jeweiligen Bearbeiten-Dialog bei „Erinnerung“). Sie erscheinen, solange LifeVault in einem Tab geöffnet ist oder als installierte App im Hintergrund läuft. Ist die App komplett geschlossen, kommen sie nicht an – GitHub Pages hat keinen eigenen Server dafür.</p>
+    <p class="muted" style="margin:0 0 10px">Popup-Erinnerungen für Aufgaben, Arbeiten und Termine, die du pro Eintrag einzeln ein- und ausschalten kannst (im jeweiligen Bearbeiten-Dialog bei „Erinnerung“). Ohne Push erscheinen sie nur, solange LifeVault offen ist oder im Hintergrund läuft.</p>
     ${!('Notification' in window) ? `<p class="hint">Dein Browser unterstützt keine Web-Benachrichtigungen.</p>`
-      : Notification.permission === 'granted' ? `<p class="hint">Aktiviert – trag bei einer Aufgabe, Arbeit oder einem Termin eine Erinnerung ein, dann meldet sich LifeVault rechtzeitig.</p>`
+      : granted ? `<p class="hint">Aktiviert – trag bei einer Aufgabe, Arbeit oder einem Termin eine Erinnerung ein, dann meldet sich LifeVault rechtzeitig.</p>`
       : Notification.permission === 'denied' ? `<p class="hint">Im Browser blockiert. Erlaube Benachrichtigungen für diese Seite in den Website-Einstellungen deines Browsers, um sie wieder zu nutzen.</p>`
       : `<button class="btn primary" data-a="notif-enable">${ic('bell')} Benachrichtigungen aktivieren</button>`}
+    ${granted || pOn ? `<div class="push-box">
+      <div class="push-h"><h3>Auch bei geschlossener App</h3>${pOn ? '<span class="pill ok">Push an</span>' : ''}</div>
+      <p class="muted" style="margin:0">Mit Push schickt ein kleiner Dienst in deinem privaten Daten-Repo die Erinnerungen, auch wenn LifeVault zu ist. Er schaut etwa alle 30 Minuten nach, eine Erinnerung kann also bis zu einer halben Stunde früher kommen. Auf jedem Gerät einzeln einschalten.</p>
+      ${!PUSH_OK ? `<p class="hint">Dieser Browser kann keine Push-Nachrichten empfangen.</p>`
+        : !on ? `<p class="hint">Dafür muss zuerst die Synchronisation eingerichtet sein (weiter unten).</p>`
+        : pOn ? `<div class="actions"><button class="btn" data-a="push-test">${ic('bell')} Testnachricht anfordern</button><button class="btn" data-a="push-off">Push ausschalten</button></div>
+          <p class="hint">Neue oder geänderte Erinnerungen kommen per Push, sobald sie synchronisiert sind.</p>`
+        : `<div class="actions"><button class="btn primary" data-a="push-on">${ic('bell')} Push aktivieren</button></div>`}
+    </div>` : ''}
     </div></section>
   <section><div class="sec-h"><h2>Kalender</h2></div><div class="card pad">
     <label class="lbl">Bundesland (für Feiertage)</label>
@@ -1988,6 +2157,17 @@ function addTag(el, focus = true) {
 
 /* ---------- Aktionen ---------- */
 const go = p => { location.hash = '#' + p; };
+async function pushAction(el, fn) {
+  if (el.disabled) return;
+  el.disabled = true; const label = el.innerHTML; el.innerHTML = 'Moment …';
+  try { await fn(); }
+  catch (e) {
+    toast(e.status || e.name === 'TypeError' ? friendlyErr(e)
+      : typeof DOMException !== 'undefined' && e instanceof DOMException ? 'Der Browser hat die Push-Anmeldung abgelehnt (' + e.message + ')'
+      : (e.message || 'Push hat nicht geklappt'), 'err');
+  }
+  finally { el.disabled = false; el.innerHTML = label; render(); }
+}
 const ACT = {
   nav: el => go(el.dataset.to),
   sync: () => { if (!configured()) go('/settings'); else runSync(true); },
@@ -2107,6 +2287,15 @@ const ACT = {
     if (p === 'granted') { toast('Benachrichtigungen aktiviert'); checkNotifications(); }
     else if (p === 'denied') toast('Blockiert – das lässt sich in den Browser-Einstellungen für diese Seite ändern', 'err');
   },
+  'push-on': el => pushAction(el, async () => { await pushEnable(); toast('Push ist auf diesem Gerät an'); }),
+  'push-off': el => pushAction(el, async () => {
+    const ok = await pushDisable();
+    toast(ok ? 'Push ist auf diesem Gerät aus' : 'Push ist aus – das Daten-Repo wird beim nächsten Lauf aufgeräumt');
+  }),
+  'push-test': el => pushAction(el, async () => {
+    const sofort = await pushTest();
+    toast(sofort ? 'Testnachricht angefordert – kommt in etwa 1–2 Minuten' : 'Testnachricht angefordert – kommt mit dem nächsten Durchlauf, spätestens in etwa 30 Minuten');
+  }),
   wipe: async () => {
     if (!await confirmModal({ title: 'Alles auf diesem Gerät löschen?', text: 'Alle Unterlagen, Fotos, Notizen und Aufgaben auf diesem Gerät werden entfernt. Ist Sync eingerichtet, bleiben sie im GitHub-Repo und kommen beim nächsten Abgleich zurück.', ok: 'Alles löschen' })) return;
     flushAll(); DB.close(); indexedDB.deleteDatabase('schulvault').onsuccess = () => { localStorage.removeItem('sv_last'); location.hash = '#/'; location.reload(); };
@@ -2214,6 +2403,7 @@ async function init() {
     });
   }
   if (configured()) runSync();
+  setTimeout(pushCheck, 6000);   // Push-Abo noch gültig? (läuft still im Hintergrund)
 }
 init();
 /* =====================================================================
@@ -2233,7 +2423,8 @@ function remindFields(item) {
   return `<details class="more" ${on ? 'open' : ''}><summary>${ic('bell')} Erinnerung${on ? '' : ' (optional)'}</summary>
     <div class="two"><div><select class="inp" name="remind" aria-label="Erinnerung">${REMIND_OPTS.map(([v, l]) => `<option value="${v}" ${String(item && item.remind != null ? item.remind : '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div><input type="time" class="inp" name="notifyTime" aria-label="Uhrzeit" value="${esc(item && item.notifyTime ? item.notifyTime : '08:00')}"></div></div>
-    <p class="hint" style="margin-top:4px">Löst ein Popup aus – nur solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Dafür musst du Benachrichtigungen einmal in den Optionen aktivieren.</p></details>`;
+    <p class="hint" style="margin-top:4px">${pushOn() ? 'Kommt per Push – auch wenn LifeVault geschlossen ist (sobald der Eintrag synchronisiert ist).'
+      : 'Löst ein Popup aus, solange LifeVault geöffnet ist bzw. im Hintergrund läuft. Damit es auch bei geschlossener App kommt: in den Optionen Push einschalten.'}</p></details>`;
 }
 function remindProps(F) {
   const remind = F.remind.value === '' ? null : +F.remind.value;

@@ -1,6 +1,7 @@
 // LifeVault Service Worker: Netzwerk zuerst (Updates kommen sofort an), Cache als Offline-Fallback
 const CACHE = 'schulvault-v6';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const PUSH_SEEN = 'sv-push-seen';   // gezeigte Erinnerungs-Schlüssel (teilt sich mit der App), damit nichts doppelt piept
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -8,7 +9,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== PUSH_SEEN).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -44,4 +45,28 @@ self.addEventListener('notificationclick', e => {
       if (clients.openWindow) return clients.openWindow(url);
     })
   );
+});
+
+/* Push vom Erinnerungs-Dienst im Daten-Repo (dienst/erinnerungen.mjs) – kommt auch bei geschlossener App */
+const seenReq = key => new Request('./__seen/' + encodeURIComponent(key));
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  const title = d.title || 'LifeVault', url = d.url || './', tag = d.tag || url + ':' + title;
+  e.waitUntil((async () => {
+    let seen = false;
+    try {
+      const c = await caches.open(PUSH_SEEN);
+      if (d.key) { seen = !!(await c.match(seenReq(d.key))); if (!seen) await c.put(seenReq(d.key), new Response(String(Date.now()))); }
+    } catch (_) { /* ohne Cache einfach anzeigen */ }
+    if (seen && (await self.registration.getNotifications({ tag })).length) return;   // steht schon da
+    await self.registration.showNotification(title, {
+      body: d.body || '', icon: 'icon-192.png?v=tresor', badge: 'icon-192.png?v=tresor', tag, data: { url }, silent: seen
+    });
+  })());
+});
+/* Abo vom Browser erneuert → gleich neu anmelden; die App trägt die neue Adresse beim nächsten Start ins Daten-Repo ein */
+self.addEventListener('pushsubscriptionchange', e => {
+  const opts = e.oldSubscription && e.oldSubscription.options;
+  if (opts && opts.applicationServerKey) e.waitUntil(self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: opts.applicationServerKey }).catch(() => {}));
 });

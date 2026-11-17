@@ -52,7 +52,8 @@ Wichtige Muster:
 - Jeder Eintrag hat `id, createdAt, updatedAt, deleted`. Immer über `add()`, `touch()`, `del()` ändern (setzt `updatedAt`, speichert, stößt Sync an). Gelöscht wird nur weich (`deleted: true`), damit der Sync die Löschung weitergeben kann.
 - Schule vs. Alltag: Ein Lernfeld (`fields`) mit `yearId` gehört zur Schule, ohne `yearId` ist es eine Alltags-Kategorie.
 - Lokale Speicherung: IndexedDB `schulvault` (aktuell Version 5). **Neue Sammlung anlegen:** in `COLL` und `S` eintragen und die Versionsnummer in `idbOpen()` um 1 erhöhen; Sync und Speicher übernehmen sie dann automatisch.
-- `localStorage`: `sv_cfg` (Sync-Einstellungen inkl. Token des Nutzers, nur im Browser), `sv_last`, `sv_space`, `sv_notified`.
+- `localStorage`: `sv_cfg` (Sync-Einstellungen inkl. Token des Nutzers, nur im Browser), `sv_last`, `sv_space`, `sv_notified`, `sv_push` (Push auf diesem Gerät: `{ on, id, endpoint, checked }`).
+- Cache `sv-push-seen` (App und Service Worker): schon gezeigte Erinnerungs-Schlüssel, damit Push und lokale Meldung nicht doppelt piepen. Der Service Worker darf ihn beim Aktivieren nicht löschen.
 - Interne Namen wie `schulvault` (Datenbank, Cache, `app` in Sicherungen) stammen vom alten App-Namen. **Nicht umbenennen**, sonst sind vorhandene Daten weg.
 
 ## Sync-Daten (privates Repo `lifevault-daten`)
@@ -60,11 +61,20 @@ Wichtige Muster:
 - `data.json` – alle Metadaten: `{ v: 1, app: 'schulvault', saved, years: [...], fields: [...], … }` (eine Liste pro Sammlung aus `COLL`)
 - `files/<id>-<rev>` – Dateien und Fotos; `rev` ändert sich z. B. beim Drehen eines Fotos
 - Abgleich pro Eintrag: die Version mit dem neueren `updatedAt` gewinnt. Einträge, die nur lokal existieren, werden wieder hochgeladen.
+- `push/` – Push-Erinnerungen (siehe unten); der Sync fasst nur `data.json` und `files/` an.
+
+## Push-Erinnerungen (auch bei geschlossener App)
+
+- Ein GitHub-Workflow im Daten-Repo (`.github/workflows/erinnerungen.yml`, Cron `7,37 * * * *`, ca. 1 Action-Minute pro Lauf) holt `dienst/erinnerungen.mjs` aus **diesem** Repo und führt es aus. Änderungen am Dienst kommen also mit dem nächsten Push auf `main` an.
+- Der Dienst nutzt dieselben Regeln, Schlüssel (`t:<id>:<due>`, `e:<id>:<date>`, `ev:<id>:<occ>`) und Texte wie `checkNotifications()` in `index.html`. **Wer `triggerTs`, `nextOccurrence`, `eventOccursOn`, `fmtDue` oder `checkNotifications` ändert, zieht `dienst/erinnerungen.mjs` mit.** Nur pro Eintrag eingestellte Erinnerungen (`remind` gesetzt), keine automatischen.
+- Dateien im Daten-Repo: `push/vapid.json` (Push-Schlüssel, legt die App beim ersten „Push aktivieren“ an), `push/geraete.json` (ein Eintrag pro Gerät, schreibt **nur die App**), `push/status.json` (gesendet, abgelaufene Abos, erledigte Tests; schreibt **nur der Dienst**). So kommen sich App und Dienst nicht in die Quere.
+- Zeitfenster: sendet bis 30 Min. vor dem Zeitpunkt, holt bis 3 Std. danach nach; beim allerersten Lauf wird Vergangenes nur abgehakt. Abos mit Antwort 404/410 gelten als abgelaufen; die App meldet sich beim nächsten Start still neu an (`pushCheck`).
+- Keine Abhängigkeiten: Verschlüsselung (RFC 8291) und VAPID mit `node:crypto`. Testen ohne echte Daten: Ordner mit erfundener `data.json` + `push/*.json` anlegen, `LV_DIR=<ordner> LV_NOW=<ms> node dienst/erinnerungen.mjs`, `fetch` im Test durch eine Attrappe ersetzen.
 
 ## Prüfen und Testen
 
 - Syntax: Der Hook prüft nach jeder Änderung automatisch (siehe unten). Von Hand:
-  `node .claude/hooks/check-syntax.js index.html sw.js manifest.webmanifest`
+  `node .claude/hooks/check-syntax.js index.html sw.js manifest.webmanifest dienst/erinnerungen.mjs`
 - Im Browser testen: `python3 -m http.server 8099` im Repo-Ordner (Windows: `py -m http.server 8099`), dann mit dem Playwright-MCP `http://localhost:8099/` öffnen. Es startet als Samsung Galaxy S24 (360 × 780, Touch) mit frischem, leerem Profil. Durchklicken, mit `browser_console_messages` auf Fehler achten und prüfen, dass `document.documentElement.scrollWidth` nicht breiter als das Fenster ist. Mit `browser_resize` zusätzlich 390 × 844 und den Desktop ab 900 px ansehen.
 - Beim Testen nie den Sync mit echtem Token einrichten; Testdaten bleiben im Testbrowser.
 - Die Texterkennung lädt Tesseract.js beim ersten Gebrauch von cdn.jsdelivr.net nach; offline oder ohne CDN-Zugriff zeigt sie eine Fehlermeldung, das ist erwartet.
@@ -77,7 +87,7 @@ Wichtige Muster:
 
 ## Claude-Code-Einrichtung (`.claude/`, `.mcp.json`)
 
-Die Hilfsskripte hier sind Werkzeuge für Claude Code, kein App-Code; die Regel „alles in `index.html`“ gilt für die App.
+Die Hilfsskripte hier sind Werkzeuge für Claude Code, kein App-Code; die Regel „alles in `index.html`“ gilt für die App. Ausnahme mit eigenem Ordner: `dienst/` (läuft in GitHub Actions, nicht im Browser).
 
 - **Token-Sperre** (`.claude/hooks/block-tokens.js`, vor jedem Schreiben/Bearbeiten/Shell-Befehl): blockiert alles, was wie ein GitHub-Token aussieht (`ghp_…`, `github_pat_…` usw.). Wenn er anschlägt: den Token entfernen, nicht umgehen.
 - **Syntax-Prüfung** (`.claude/hooks/check-syntax.js`, nach jedem Schreiben/Bearbeiten): prüft den `<script>`-Block in `.html`, ganze `.js`-Dateien und `.json`/`.webmanifest`. Meldet sie einen Fehler mit Zeilennummer, sofort beheben.

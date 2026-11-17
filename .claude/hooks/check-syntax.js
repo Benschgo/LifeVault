@@ -11,6 +11,7 @@
 // Geprüft wird:
 //   .html  → jeder eingebettete <script>-Block (ohne src), Zeilennummern passend zur HTML-Datei
 //   .js    → die ganze Datei
+//   .mjs   → die ganze Datei als ES-Modul (z. B. dienst/erinnerungen.mjs), über `node --check`
 //   .json / .webmanifest → gültiges JSON
 // Der Code wird nur übersetzt, nicht ausgeführt.
 
@@ -39,6 +40,17 @@ function checkJs(code, file, lineOffset) {
   }
 }
 
+function checkModule(file) {
+  const r = require('child_process').spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+  if (r.status === 0 || r.error) return null;
+  const out = String(r.stderr || '');
+  const m = out.match(/:(\d+)\s*\n/);
+  const msg = (out.match(/^SyntaxError: .*$/m) || ['Syntaxfehler'])[0].replace(/^SyntaxError: /, '');
+  const lines = out.split('\n');
+  const snippet = m ? lines.slice(1, 3).filter(l => l.trim()).map(l => l.slice(0, 160)).join('\n') : '';
+  return { line: m ? Number(m[1]) : null, msg, snippet };
+}
+
 function checkJson(text) {
   try { JSON.parse(text); return null; }
   catch (e) {
@@ -50,13 +62,17 @@ function checkJson(text) {
 // Liefert eine Liste von Fehlern für eine Datei (leer = OK) oder null, wenn der Dateityp nicht geprüft wird.
 function checkFile(file) {
   const ext = path.extname(file).toLowerCase();
-  if (!['.html', '.htm', '.js', '.cjs', '.json', '.webmanifest'].includes(ext)) return null;
+  if (!['.html', '.htm', '.js', '.cjs', '.mjs', '.json', '.webmanifest'].includes(ext)) return null;
   let text;
   try { text = fs.readFileSync(file, 'utf8'); } catch (e) { return null; } // Datei weg (gelöscht/umbenannt): nichts zu prüfen
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
   if (ext === '.json' || ext === '.webmanifest') {
     const err = checkJson(text);
+    return err ? [err] : [];
+  }
+  if (ext === '.mjs') {
+    const err = checkModule(file);
     return err ? [err] : [];
   }
   if (ext === '.js' || ext === '.cjs') {

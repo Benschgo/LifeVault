@@ -25,6 +25,7 @@ Benny ändert LifeVault auch im Chat und vom Handy aus. Deshalb zuerst den Stand
 Hochgeladen werden dürfen nur:
 
 - App: `index.html`, `sw.js`, `manifest.webmanifest`, `icon-*.png`, `icon.svg`, `icon-maskable.svg`
+- Push-Dienst: `dienst/erinnerungen.mjs` (läuft im Daten-Repo als GitHub Action, enthält keine Daten oder Schlüssel)
 - Projekt: `CLAUDE.md`, `.gitignore`, `.mcp.json`, alles unter `.claude/` außer `.claude/settings.local.json`
 
 Liegt etwas anderes geändert oder neu im Ordner (z. B. `lifevault-daten-….json`-Sicherungen, Screenshots, `.playwright-mcp/`, Testdaten): **nicht** hinzufügen, Benny fragen. Sicherungen und Testdaten enthalten echte Einträge und gehören nie ins Repo.
@@ -42,10 +43,10 @@ Warum: Erst eine geänderte `sw.js` bringt Handy und Laptop dazu, den neuen Serv
 ## 4. Syntax prüfen
 
 ```
-node .claude/hooks/check-syntax.js index.html sw.js manifest.webmanifest
+node .claude/hooks/check-syntax.js index.html sw.js manifest.webmanifest dienst/erinnerungen.mjs
 ```
 
-Alle drei Zeilen müssen mit ✓ beginnen. Bei ✗: Fehler beheben und diesen Schritt wiederholen.
+Alle Zeilen müssen mit ✓ beginnen. Bei ✗: Fehler beheben und diesen Schritt wiederholen.
 
 ## 5. Datenformat prüfen
 
