@@ -1,5 +1,5 @@
 // LifeVault Service Worker: Netzwerk zuerst (Updates kommen sofort an), Cache als Offline-Fallback
-const CACHE = 'schulvault-v3';
+const CACHE = 'schulvault-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
