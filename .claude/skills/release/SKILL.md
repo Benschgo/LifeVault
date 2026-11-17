@@ -59,6 +59,7 @@ Bisherige Versionen zur Orientierung:
 | 3.1.0 | 17.11.2026 | mittel | Kalender übersichtlicher, kein Wischen zwischen Kategorien, Plus-Taster am PC, dunkle Android-Leiste |
 | 3.1.1 | 17.11.2026 | klein | Symbol-Adressen mit Versionsangabe, damit Android das neue Symbol übernimmt |
 | 3.2.0 | 17.11.2026 | mittel | Push-Erinnerungen auch bei geschlossener App, Versionsnummer wird gepflegt |
+| 3.3.0 | 17.11.2026 | mittel | Leisten mit Zahlenrad, Leiterbahnen und Lichtspalt, eigener Startbildschirm in der installierten App |
 
 Ohne eigene Nummer: der zweite Upload am 24.09. (dieselben Dateien noch einmal) und die Claude-Code-Einrichtung am 16.11. (an der App hat sich nichts geändert). Neue Versionen hier unten in der Tabelle ergänzen.
 
