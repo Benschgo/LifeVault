@@ -1325,15 +1325,6 @@ function renderNav(a) {
   $('#nav').innerHTML = `<div class="brand"><img src="icon-192.png" alt="" width="36" height="36">LifeVault</div>` + NAV_ITEMS.map(([h, i, l, keys]) =>
     `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
 }
-/* Wischen zwischen den Kategorien der Navigationsleiste */
-function navSwipe(dir) {
-  const a = (location.hash.slice(1) || '/').split('/').filter(Boolean)[0] || '';
-  let idx = NAV_ITEMS.findIndex(([, , , keys]) => keys.includes(a));
-  if (idx === -1) idx = 0;
-  const next = idx + dir;
-  if (next < 0 || next >= NAV_ITEMS.length) return;
-  go(NAV_ITEMS[next][0]);
-}
 function autoGrow(el) { const min = el.dataset.min !== undefined ? +el.dataset.min : 96; el.style.height = 'auto'; el.style.height = Math.max(min, el.scrollHeight + 2) + 'px'; }
 function afterRender() {
   $$('textarea.autogrow').forEach(autoGrow);
@@ -2172,18 +2163,6 @@ function wire() {
     if (!e.target.closest('#lbst') || $('#lbst').classList.contains('zoom')) return;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
-  }, { passive: true });
-  // Navigation per Wischen zwischen den Kategorien der Navigationsleiste
-  let nsx = 0, nsy = 0, nSwiping = false;
-  document.addEventListener('touchstart', e => {
-    const t = e.target;
-    nSwiping = !(LB.open || $$('.modal').length || t.closest('#lbst') || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || !t.closest('#view'));
-    if (nSwiping) { nsx = e.touches[0].clientX; nsy = e.touches[0].clientY; }
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (!nSwiping) return; nSwiping = false;
-    const dx = e.changedTouches[0].clientX - nsx, dy = e.changedTouches[0].clientY - nsy;
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) navSwipe(dx < 0 ? 1 : -1);
   }, { passive: true });
   // Datei-Eingaben
   $('#in-cam').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'photo'), 'cam'); });

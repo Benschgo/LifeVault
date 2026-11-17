@@ -43,7 +43,7 @@ Wichtige Muster:
 - **Klicks:** Ein globaler Listener verteilt Klicks auf Elemente mit `data-a="…"` an das Objekt `ACT`. Buttons, die nur innerhalb eines Dialogs wirken, bekommen bewusst **kein** `data-a` (sondern z. B. `data-del`, `data-gk`), sonst lösen sie zusätzlich eine globale Aktion aus.
 - **Dialoge:** `askModal(html, setup)`; Elemente mit `data-close` schließen automatisch.
 - **Unwichtige Felder** in Formularen kommen in ein einklappbares `<details class="more">`.
-- **Navigation:** Die Kategorien stehen in `NAV_ITEMS`; Wischen links/rechts wechselt zwischen ihnen.
+- **Navigation:** Die Kategorien stehen in `NAV_ITEMS`. Gewechselt wird **nur** über die Leiste (unten bzw. links); Wischen zwischen Kategorien ist bewusst abgeschaltet (Bennys Wunsch). Wischen gibt es nur im Foto-Viewer zum Blättern.
 
 ## Datenmodell
 
