@@ -3,20 +3,20 @@ name: release
 description: LifeVault veröffentlichen – Stand holen, Versionsnummer nach Größe des Updates erhöhen, Cache-Version im Service Worker hochzählen, Syntax und Datenformat prüfen, nach Tokens suchen, auf main pushen (GitHub Pages).
 disable-model-invocation: true
 argument-hint: "[kurz, was sich geändert hat]"
-allowed-tools: Bash(git status *) Bash(git fetch *) Bash(git pull *) Bash(git diff *) Bash(git rev-list *) Bash(git log *) Bash(git describe *) Bash(git rev-parse *) Bash(git tag *) Bash(git add *) Bash(git grep *) Bash(git commit *) Bash(git push origin main) Bash(git push origin v*) Bash(node .claude/hooks/check-syntax.js *)
+allowed-tools: Bash(git status *) Bash(git fetch *) Bash(git pull *) Bash(git diff *) Bash(git rev-list *) Bash(git log *) Bash(git rev-parse *) Bash(git add *) Bash(git grep *) Bash(git commit *) Bash(git push origin main) Bash(node .claude/hooks/check-syntax.js *)
 ---
 
 # LifeVault veröffentlichen
 
 Veröffentliche den aktuellen Stand von LifeVault. Beschreibung der Änderung (kann leer sein): $ARGUMENTS
 
-Arbeite die Schritte der Reihe nach ab. Wenn ein Schritt scheitert: **abbrechen**, Benny kurz auf Deutsch sagen, was los ist, und nicht pushen. Niemals `git push --force`, keine Branches wechseln, nichts löschen (auch keine Tags).
+Arbeite die Schritte der Reihe nach ab. Wenn ein Schritt scheitert: **abbrechen**, Benny kurz auf Deutsch sagen, was los ist, und nicht pushen. Niemals `git push --force`, keine Branches wechseln, nichts löschen.
 
 ## 1. Stand holen
 
 Benny ändert LifeVault auch im Chat und vom Handy aus. Deshalb zuerst den Stand von GitHub holen:
 
-1. `git status --short` und `git fetch --tags origin main`. Ist der Klon flach (`git rev-parse --is-shallow-repository` gibt `true`), zuerst `git fetch --unshallow origin` – sonst fehlt die ältere Geschichte für die Versionsnummer.
+1. `git status --short` und `git fetch origin main`. Ist der Klon flach (`git rev-parse --is-shallow-repository` gibt `true`), zuerst `git fetch --unshallow origin` – sonst fehlt die ältere Geschichte für die Versionsnummer.
 2. `git rev-list --left-right --count HEAD...origin/main` – steht rechts eine Zahl größer 0, gibt es auf GitHub neuere Commits: `git pull --rebase --autostash origin main`. Bei einem Konflikt abbrechen und Benny die betroffenen Stellen zeigen.
 3. Was wird veröffentlicht? `git diff --stat origin/main` plus neue Dateien aus `git status --short`. Ist beides leer: „Nichts zu veröffentlichen“ melden und aufhören.
 
@@ -32,17 +32,17 @@ Liegt etwas anderes geändert oder neu im Ordner (z. B. `lifevault-daten-….jso
 
 ## 3. Versionsnummer festlegen
 
-Die Version steht in `index.html` in der Zeile `const APP_VERSION = 'X.Y.Z';` und erscheint unten in den Optionen („LifeVault X.Y.Z“). Zu jeder veröffentlichten Version gibt es einen Git-Tag `vX.Y.Z`.
+Die Version steht in `index.html` in der Zeile `const APP_VERSION = 'X.Y.Z';` und erscheint unten in den Optionen („LifeVault X.Y.Z“). Alle bisherigen Versionen stehen in der Tabelle unten. (Git-Tags gehen nicht: Das Hochladen von Tags wird in diesen Sitzungen abgelehnt.)
 
-1. **Ausgangspunkt:** neuester Tag (`git describe --tags --abbrev=0`) und `APP_VERSION` in `index.html` – die **höhere** der beiden Nummern gilt. (Lädt Benny eine `index.html` aus einem anderen Chat hoch, kann dort eine ältere Nummer stehen; die Version darf nie zurückgehen.)
-2. **Was ist seit der letzten Version neu?** `git log --oneline <letzter-tag>..HEAD` und `git diff --stat <letzter-tag>` plus die Änderungen, die jetzt hochgeladen werden. Alles, was seit dem letzten Tag dazukam, gehört in diese Version.
+1. **Ausgangspunkt:** letzte Zeile der Tabelle unten und `APP_VERSION` in `index.html` – die **höhere** der beiden Nummern gilt. (Lädt Benny eine `index.html` aus einem anderen Chat hoch, kann dort eine ältere Nummer stehen; die Version darf nie zurückgehen.)
+2. **Was ist seit der letzten Version neu?** Den letzten Release-Commit finden: `git log -1 --format=%h --grep='^Release [0-9]'`. Dann `git log --oneline <commit>..HEAD` und `git diff --stat <commit>` plus die Änderungen, die jetzt hochgeladen werden. Alles, was seitdem dazukam (auch Uploads, die Benny selbst gemacht hat), gehört in diese Version.
 3. **Stufe selbst entscheiden** – maßgeblich ist, was Benny in der App merkt, nicht wie viel Code sich geändert hat:
    - **Groß** (erste Zahl +1, Rest 0, z. B. 2.4.1 → 3.0.0): Die App sieht grundlegend anders aus oder arbeitet anders – komplette Neugestaltung, neuer großer Bereich, Umbau von Datenformat oder Sync, oder etwas, das eine Neueinrichtung auf den Geräten braucht.
    - **Mittel** (zweite Zahl +1, letzte 0, z. B. 2.4.1 → 2.5.0): neue Funktion, oder eine Ansicht/ein Ablauf wurde spürbar überarbeitet, oder mehrere kleinere Verbesserungen zusammen, die man deutlich merkt.
    - **Klein** (letzte Zahl +1, z. B. 2.4.1 → 2.4.2): Fehler behoben, kleine Anpassung an Text, Farbe, Abstand oder Verhalten, technische Korrektur ohne neue Funktion.
-   - **Keine neue Nummer:** Es ändert sich nichts an der App oder am Push-Dienst, nur an Werkzeugen und Notizen (`CLAUDE.md`, `.claude/`, `.gitignore`, `.mcp.json`). Dann `APP_VERSION` nicht anfassen und keinen Tag setzen.
+   - **Keine neue Nummer:** Es ändert sich nichts an der App oder am Push-Dienst, nur an Werkzeugen und Notizen (`CLAUDE.md`, `.claude/`, `.gitignore`, `.mcp.json`). Dann `APP_VERSION` und Tabelle nicht anfassen.
    - Mehrere Änderungen in einem Upload: die größte entscheidet. Im Zweifel die kleinere Stufe. Nie Nummern überspringen.
-4. **Eintragen:** `APP_VERSION` in `index.html` auf die neue Nummer setzen. Die Nummer und die Stufe mit einem Halbsatz Begründung merken (für Commit, Tag und Abschlussmeldung).
+4. **Eintragen:** `APP_VERSION` in `index.html` auf die neue Nummer setzen und eine neue Zeile unten in die Tabelle schreiben (Version, Datum, Stufe, was neu ist). Die Begründung für die Stufe kommt in die Abschlussmeldung.
 
 Bisherige Versionen zur Orientierung:
 
@@ -98,12 +98,11 @@ Wenn `git diff origin/main -- index.html` mehr als die Versionszeile ändert: de
    ```
    Findet der Befehl nichts (Exit-Code 1), ist alles gut. Findet er etwas: sofort abbrechen, die Fundstelle nennen (den Token selbst nicht ausgeben), `git restore --staged <datei>` und Benny Bescheid geben.
 
-## 8. Commit, Tag und Push
+## 8. Commit und Push
 
 1. Commit-Nachricht auf Deutsch, beginnend mit „Release X.Y.Z: “ und dann die Beschreibung von oben, sonst eine kurze Zusammenfassung aus dem Diff. Bei neuer Cache-Version am Ende z. B. „(Cache schulvault-v3)“ anhängen. Ohne neue Versionsnummer (Schritt 3): „Release: …“.
 2. `git commit -m "…"`, dann `git push origin main`.
 3. Wird der Push abgelehnt, weil inzwischen jemand anderes gepusht hat: `git pull --rebase origin main`, Schritt 5 wiederholen, erneut pushen.
-4. Mit neuer Versionsnummer: `git tag -a vX.Y.Z -m "X.Y.Z (Stufe): kurz, was neu ist"` auf den gerade gepushten Commit, dann `git push origin vX.Y.Z`. Scheitert nur der Tag-Push, ist die Veröffentlichung trotzdem gültig – in der Abschlussmeldung erwähnen.
 
 ## 9. Abschluss
 
