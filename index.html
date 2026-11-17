@@ -107,8 +107,10 @@ small,.muted{color:var(--muted)}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.3125rem;padding:4px 14px 20px;margin-bottom:6px;border-bottom:1px solid var(--line)}
   .brand img{width:36px;height:36px;display:block;flex:none}
   #main{margin-left:224px}
-  #view{padding-bottom:60px}
-  .fab{right:max(24px,calc((100vw - 224px - 940px)/2 + 14px))!important;bottom:28px!important}
+  /* PC: Plus-Taster in die freie rechte Ecke neben der Inhaltsspalte; unten so viel Platz,
+     dass am Seitenende nichts darunter verschwindet (z. B. die Kalender-Legende) */
+  #view{padding-bottom:116px}
+  .fab{right:24px!important;bottom:28px!important}
 }
 
 /* ---------- Basics ---------- */
