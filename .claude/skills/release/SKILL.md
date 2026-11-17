@@ -24,7 +24,7 @@ Benny ändert LifeVault auch im Chat und vom Handy aus. Deshalb zuerst den Stand
 
 Hochgeladen werden dürfen nur:
 
-- App: `index.html`, `sw.js`, `manifest.webmanifest`, `icon-*.png`
+- App: `index.html`, `sw.js`, `manifest.webmanifest`, `icon-*.png`, `icon.svg`, `icon-maskable.svg`
 - Projekt: `CLAUDE.md`, `.gitignore`, `.mcp.json`, alles unter `.claude/` außer `.claude/settings.local.json`
 
 Liegt etwas anderes geändert oder neu im Ordner (z. B. `lifevault-daten-….json`-Sicherungen, Screenshots, `.playwright-mcp/`, Testdaten): **nicht** hinzufügen, Benny fragen. Sicherungen und Testdaten enthalten echte Einträge und gehören nie ins Repo.

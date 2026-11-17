@@ -105,7 +105,7 @@ small,.muted{color:var(--muted)}
   #nav .badge{position:static;margin-left:auto}
   #nav .dot{position:static;margin-left:auto}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.3125rem;padding:4px 14px 20px;margin-bottom:6px;border-bottom:1px solid var(--line)}
-  .brand span{width:32px;height:32px;border-radius:var(--radius-s);background:var(--signal);color:var(--signal-ink);display:flex;align-items:center;justify-content:center}
+  .brand img{width:36px;height:36px;display:block;flex:none}
   #main{margin-left:224px}
   #view{padding-bottom:60px}
   .fab{right:max(24px,calc((100vw - 224px - 940px)/2 + 14px))!important;bottom:28px!important}
@@ -1320,7 +1320,7 @@ const NAV_ITEMS = [
 ];
 function renderNav(a) {
   const over = todosOpen().filter(t => t.due && t.due <= today()).length, soon = examSoonCount() + eventSoonCount();
-  $('#nav').innerHTML = `<div class="brand"><span>${ic('folder')}</span>LifeVault</div>` + NAV_ITEMS.map(([h, i, l, keys]) =>
+  $('#nav').innerHTML = `<div class="brand"><img src="icon-192.png" alt="" width="36" height="36">LifeVault</div>` + NAV_ITEMS.map(([h, i, l, keys]) =>
     `<a href="#${h}" class="${keys.includes(a || '') ? 'on' : ''}">${ic(i)}<span>${l}</span>${h === '/' && over ? `<em class="badge" style="font-style:normal">${over}</em>` : ''}${h === '/cal' && soon ? `<em class="badge" style="font-style:normal">${soon}</em>` : ''}${h === '/settings' && SYNC.state === 'err' ? '<em class="dot"></em>' : ''}</a>`).join('');
 }
 /* Wischen zwischen den Kategorien der Navigationsleiste */
