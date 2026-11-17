@@ -26,7 +26,7 @@ Persönliche PWA für Schule und Alltag: Unterlagen (mit Fotos/Dateien), Notizen
 - Freie Tage (Feiertage) schraffiert über `--hatch`. Turnus-Arten als Farbband (Startseite) bzw. Tönung (Monatskalender).
 - Umschalter (`.seg`, `.tabs`, `.chip.btnlike`) wie Wahlschalter: aktive Stellung in Tusche gefüllt.
 - `manifest.webmanifest`: `theme_color` `#19212a` und `background_color` `#10151b` (dunkel). Chrome färbt damit bei der installierten App die Android-Leiste unten und das Startbild; Benny nutzt den Dunkelmodus, daher nicht hell machen. Änderungen daran kommen auf dem Handy erst an, wenn Chrome die installierte App aktualisiert (kann ein bis zwei Tage dauern).
-- App-Symbol „Tresor“ (Tresortür mit rotem Zahlenrad, Lichtspalt, Unterlagen dahinter). Quellen: `icon.svg` (Kachel mit Neonkante → `icon-192.png`, `icon-512.png`, auch Logo in der Seitenleiste) und `icon-maskable.svg` (randlos für Android → `icon-maskable-512.png`). PNGs bei Änderungen aus den SVGs neu rendern (1024 px, dann verkleinern).
+- App-Symbol „Tresor“ (Tresortür mit rotem Zahlenrad, Lichtspalt, Unterlagen dahinter). Quellen: `icon.svg` (Kachel mit Neonkante → `icon-192.png`, `icon-512.png`, auch Logo in der Seitenleiste) und `icon-maskable.svg` (randlos für Android → `icon-maskable-512.png`). PNGs bei Änderungen aus den SVGs neu rendern (1024 px, dann verkleinern). **Bei einem neuen Symbol immer die Versionsangabe an den Bildadressen ändern** (`?v=tresor` → neuer Name) in `manifest.webmanifest` und `index.html` (Favicon, Apple-Touch-Icon, Seitenleisten-Logo): Chrome für Android lädt neue Symbole nur, wenn sich die Adresse im Manifest ändert, und lässt sie vom Nutzer bestätigen.
 
 ## Aufbau von `index.html`
 
