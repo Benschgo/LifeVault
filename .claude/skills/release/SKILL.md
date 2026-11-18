@@ -24,7 +24,7 @@ Benny ändert LifeVault auch im Chat und vom Handy aus. Deshalb zuerst den Stand
 
 Hochgeladen werden dürfen nur:
 
-- App: `index.html`, `sw.js`, `manifest.webmanifest`, `icon-*.png`, `icon.svg`, `icon-maskable.svg`
+- App: `index.html`, `sw.js`, `manifest.webmanifest`, `icon-*.png`, `icon.svg`, `icon-maskable.svg`, `kalender-bild.webp`
 - Push-Dienst: `dienst/erinnerungen.mjs` (läuft im Daten-Repo als GitHub Action, enthält keine Daten oder Schlüssel)
 - Projekt: `CLAUDE.md`, `.gitignore`, `.mcp.json`, alles unter `.claude/` außer `.claude/settings.local.json`
 
@@ -60,6 +60,7 @@ Bisherige Versionen zur Orientierung:
 | 3.1.1 | 17.11.2026 | klein | Symbol-Adressen mit Versionsangabe, damit Android das neue Symbol übernimmt |
 | 3.2.0 | 17.11.2026 | mittel | Push-Erinnerungen auch bei geschlossener App, Versionsnummer wird gepflegt |
 | 3.3.0 | 17.11.2026 | mittel | Leisten mit Zahlenrad, Leiterbahnen und Lichtspalt, eigener Startbildschirm in der installierten App |
+| 3.4.0 | 18.11.2026 | mittel | Bergsee-Bild als Hintergrund der Kalenderfläche (Dunkelmodus) |
 
 Ohne eigene Nummer: der zweite Upload am 24.09. (dieselben Dateien noch einmal) und die Claude-Code-Einrichtung am 16.11. (an der App hat sich nichts geändert). Neue Versionen hier unten in der Tabelle ergänzen.
 
