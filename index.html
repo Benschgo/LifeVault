@@ -361,22 +361,28 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 @media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.9rem}.calnav b{font-size:1.125rem}}
 
 /* ---------- Kalender-Hintergrundbild (Bennys Bild „Bergsee bei Nacht“, nur Dunkelmodus) ----------
+   Das Bild liegt nur hinter dem Kalender (.cal-bild um das Raster), die Legende darunter bleibt auf der normalen Fläche.
    Zum Entfernen: diesen Block, die Klasse „bild“ an .cal-panel in vCalMonth() und kalender-bild.webp löschen.
    Lesbarkeit: dunkler Verlauf über dem Bild, Tage halb durchsichtig, Schatten unter der Schrift; Mond oben hinter der Wochentagszeile. */
 @media (prefers-color-scheme:dark){
-  .cal-panel.bild{background:linear-gradient(180deg,rgba(9,12,16,.30),rgba(9,12,16,.10) 45%,rgba(9,12,16,.45)),url("kalender-bild.webp") 72% 100%/auto 112% no-repeat,#0d1116;
+  .cal-panel.bild .cal-bild{margin:-8px -8px 0;padding:8px;border-radius:var(--radius) var(--radius) 0 0;
+    background:linear-gradient(180deg,rgba(9,12,16,.30),rgba(9,12,16,.10) 45%,rgba(9,12,16,.40)),url("kalender-bild.webp") 72% 100%/auto 112% no-repeat,#0d1116;
     --cell:rgba(24,31,40,.56);--cell-we:rgba(14,18,23,.62);--cell-out:rgba(10,13,17,.52)}
+  .cal-panel.bild .cal-bild:last-child{margin-bottom:-10px;border-radius:var(--radius)}
+  .cal-panel.bild .legend{margin-top:0;border-top:0;padding-top:12px}
   .cal-panel.bild .cal-day .dn{font-weight:600;color:#f4f7fa;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 10px rgba(0,0,0,.95)}
   .cal-panel.bild .cal-day.weekend .dn{color:#dfe5eb}
   .cal-panel.bild .cal-day.sun .dn,.cal-panel.bild .cal-day.holiday .dn{color:#ff6b78}
   .cal-panel.bild .cal-day.today .dn{color:var(--signal-ink);text-shadow:none}
   .cal-panel.bild .cal-day.out>*{opacity:.5}
   .cal-panel.bild .cal-day .dots i{box-shadow:0 0 0 1.5px rgba(0,0,0,.7)}
-  .cal-panel.bild .cal-head,.cal-panel.bild .cal-wk,.cal-panel.bild .legend{color:#e4e9ee;font-weight:600;text-shadow:0 0 2px #000,0 1px 3px #000}
+  .cal-panel.bild .cal-head,.cal-panel.bild .cal-wk{color:#e4e9ee;font-weight:600;text-shadow:0 0 2px #000,0 1px 3px #000}
   .cal-panel.bild .cal-head:nth-child(8){color:#ff6b78}
-  .cal-panel.bild .legend{border-top-color:rgba(255,255,255,.14)}
 }
-@media (prefers-color-scheme:dark) and (min-width:900px){.cal-panel.bild{background-position:center,72% 28%;background-size:auto,cover}}
+@media (prefers-color-scheme:dark) and (min-width:900px){
+  .cal-panel.bild .cal-bild{margin:-12px -12px 0;padding:12px;background-position:center,72% 28%;background-size:auto,cover}
+  .cal-panel.bild .cal-bild:last-child{margin-bottom:-14px}
+}
 
 /* ---------- Start: Tageskopf mit Turnus-Klemmleiste ---------- */
 .today-hero{padding:14px 14px 12px;border-top:4px solid var(--brand)}
@@ -524,7 +530,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
                 laufen im Kalender zentral zusammen.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
-const APP_VERSION = '3.4.1';
+const APP_VERSION = '3.4.2';
 const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
 const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
@@ -2690,7 +2696,7 @@ function vCalMonth() {
     <button class="chip btnlike ${cf === 'schule' ? 'on' : ''}" data-a="calf" data-v="schule">${ic('book')} Schule</button>
     <button class="chip btnlike ${cf === 'alltag' ? 'on' : ''}" data-a="calf" data-v="alltag">${ic('home')} Alltag</button></div>`;
   if (!bl) h += `<p class="hint" style="margin:0 2px 10px">Feiertage automatisch anzeigen: <a href="#/settings">Bundesland in den Optionen wählen</a>.</p>`;
-  h += `<div class="card cal-panel bild"><div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
+  h += `<div class="card cal-panel bild"><div class="cal-bild"><div class="cal-grid"><div class="cal-head"></div>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<div class="cal-head">${d}</div>`).join('')}`;
   rows.forEach(row => {
     const wk = ymd(row[0]);
     h += `<button class="cal-wk" data-a="cal-week" data-week="${wk}" aria-label="Turnus für KW ${isoWeekNum(row[0])} wählen">${isoWeekNum(row[0])}</button>`;
@@ -2710,7 +2716,7 @@ function vCalMonth() {
         ${total ? `<span class="dots">${dots}</span>` : ''}</button>`;
     });
   });
-  h += `</div>`;
+  h += `</div></div>`;   // Ende Raster + Bildfläche
   if (types.size || bl) h += `<div class="legend">${[...types.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => `<span><i style="--c:${t.color}"></i>${esc(t.name)} (${esc(daysLabel(t.days))})</span>`).join('')}${bl ? `<span><i class="hol"></i>Feiertag</span>` : ''}</div>`;
   h += `</div><button class="fab" data-a="cal-new">${ic('plus')} Eintrag</button>`;
   return h;

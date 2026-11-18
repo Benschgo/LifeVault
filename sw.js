@@ -1,5 +1,5 @@
 // LifeVault Service Worker: Netzwerk zuerst (Updates kommen sofort an), Cache als Offline-Fallback
-const CACHE = 'schulvault-v11';
+const CACHE = 'schulvault-v12';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png?v=tresor', './kalender-bild.webp'];
 const PUSH_SEEN = 'sv-push-seen';   // gezeigte Erinnerungs-Schlüssel (teilt sich mit der App), damit nichts doppelt piept
 
