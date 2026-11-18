@@ -365,9 +365,15 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
    Lesbarkeit: dunkler Verlauf über dem Bild, Tage halb durchsichtig, Schatten unter der Schrift; Mond oben hinter der Wochentagszeile. */
 @media (prefers-color-scheme:dark){
   .cal-panel.bild{background:linear-gradient(180deg,rgba(9,12,16,.30),rgba(9,12,16,.10) 45%,rgba(9,12,16,.45)),url("kalender-bild.webp") 72% 100%/auto 112% no-repeat,#0d1116;
-    --cell:rgba(24,31,40,.48);--cell-we:rgba(14,18,23,.55);--cell-out:rgba(10,13,17,.45)}
-  .cal-panel.bild .cal-day .dn{text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.8)}
-  .cal-panel.bild .cal-head,.cal-panel.bild .cal-wk,.cal-panel.bild .legend{color:#c9d2db;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+    --cell:rgba(24,31,40,.56);--cell-we:rgba(14,18,23,.62);--cell-out:rgba(10,13,17,.52)}
+  .cal-panel.bild .cal-day .dn{font-weight:600;color:#f4f7fa;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 10px rgba(0,0,0,.95)}
+  .cal-panel.bild .cal-day.weekend .dn{color:#dfe5eb}
+  .cal-panel.bild .cal-day.sun .dn,.cal-panel.bild .cal-day.holiday .dn{color:#ff6b78}
+  .cal-panel.bild .cal-day.today .dn{color:var(--signal-ink);text-shadow:none}
+  .cal-panel.bild .cal-day.out>*{opacity:.5}
+  .cal-panel.bild .cal-day .dots i{box-shadow:0 0 0 1.5px rgba(0,0,0,.7)}
+  .cal-panel.bild .cal-head,.cal-panel.bild .cal-wk,.cal-panel.bild .legend{color:#e4e9ee;font-weight:600;text-shadow:0 0 2px #000,0 1px 3px #000}
+  .cal-panel.bild .cal-head:nth-child(8){color:#ff6b78}
   .cal-panel.bild .legend{border-top-color:rgba(255,255,255,.14)}
 }
 @media (prefers-color-scheme:dark) and (min-width:900px){.cal-panel.bild{background-position:center,72% 28%;background-size:auto,cover}}
@@ -518,7 +524,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
                 laufen im Kalender zentral zusammen.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
-const APP_VERSION = '3.4.0';
+const APP_VERSION = '3.4.1';
 const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
 const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];

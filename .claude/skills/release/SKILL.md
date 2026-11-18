@@ -61,6 +61,7 @@ Bisherige Versionen zur Orientierung:
 | 3.2.0 | 17.11.2026 | mittel | Push-Erinnerungen auch bei geschlossener App, Versionsnummer wird gepflegt |
 | 3.3.0 | 17.11.2026 | mittel | Leisten mit Zahlenrad, Leiterbahnen und Lichtspalt, eigener Startbildschirm in der installierten App |
 | 3.4.0 | 18.11.2026 | mittel | Bergsee-Bild als Hintergrund der Kalenderfläche (Dunkelmodus) |
+| 3.4.1 | 18.11.2026 | klein | Schrift im Kalender mit Bild besser lesbar |
 
 Ohne eigene Nummer: der zweite Upload am 24.09. (dieselben Dateien noch einmal) und die Claude-Code-Einrichtung am 16.11. (an der App hat sich nichts geändert). Neue Versionen hier unten in der Tabelle ergänzen.
 
