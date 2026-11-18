@@ -1,5 +1,6 @@
 # Dieses Repo ist öffentlich: echte Daten, Sicherungen und persönliche Einstellungen nie hochladen
 lifevault-daten*
+lifevault-sicherung*
 .claude/settings.local.json
 
 # Testausgaben (Playwright-Screenshots, Hilfspakete)

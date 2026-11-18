@@ -448,6 +448,15 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
 .zcard small{display:block;color:var(--muted);font-size:.85rem}
 .zcard.leer{flex-direction:column;align-items:center;gap:2px;background:transparent;border:1px dashed color-mix(in srgb,var(--ok) 55%,transparent)}
 .zcard.leer b{display:inline-flex;align-items:center;gap:6px;color:var(--ok)}
+.share-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:16px}
+.share-grid figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.share-grid img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.share-grid .doc{align-items:center;justify-content:center;aspect-ratio:1;padding:8px;text-align:center;gap:6px}
+.share-grid .doc .ic{width:30px;height:30px;color:var(--muted)}
+.share-grid figcaption{font-size:.75rem;padding:4px 6px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.share-grid .doc figcaption{white-space:normal;overflow-wrap:anywhere}
+.trash-row{flex-wrap:wrap}.trash-row .grow{flex:1 1 170px}.trash-row .btn{flex:none;margin-left:auto}
+.trash-row b,.trash-row small{white-space:normal;overflow-wrap:break-word}
 .zswitch{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);cursor:pointer}
 .zswitch input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--ok)}
 .zswitch b{display:block;font-weight:600}
@@ -530,7 +539,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
 <input type="file" id="in-cam" accept="image/*" capture="environment" hidden>
 <input type="file" id="in-gal" accept="image/*" multiple hidden>
 <input type="file" id="in-file" multiple hidden>
-<input type="file" id="in-import" accept="application/json,.json" hidden>
+<input type="file" id="in-import" accept="application/json,.json,application/zip,.zip" hidden>
 <script>
 'use strict';
 /* =====================================================================
@@ -545,7 +554,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
                 laufen im Kalender zentral zusammen.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.6.0';
 const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
 const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
@@ -630,7 +639,10 @@ const ICONS = {
   open: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>',
   warn: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-  scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>'
+  scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>'
 };
 const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
@@ -682,7 +694,7 @@ const byId = (t, id) => S[t].find(x => x.id === id && !x.deleted);
 function persist(t, o) { idbPut(t, o).catch(() => toast('Speichern fehlgeschlagen (Speicher voll?)', 'err')); }
 function touch(t, o) { o.updatedAt = now(); persist(t, o); scheduleSync(); }
 function add(t, props) {
-  const o = { id: uid(), createdAt: now(), updatedAt: now(), deleted: false, ...props };
+  const ts = now(), o = { id: uid(), createdAt: ts, updatedAt: ts, deleted: false, ...props };
   S[t].push(o); persist(t, o); scheduleSync(); return o;
 }
 function del(t, o) {
@@ -690,16 +702,17 @@ function del(t, o) {
   if (t === 'years') live('fields').filter(f => f.yearId === o.id).forEach(f => del('fields', f));
   if (t === 'fields') {
     live('docs').filter(d => d.fieldId === o.id).forEach(d => del('docs', d));
-    live('todos').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; x.docId = null; touch('todos', x); });
-    live('exams').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('exams', x); });
-    live('events').filter(x => x.fieldId === o.id).forEach(x => { x.fieldId = null; touch('events', x); });
+    live('todos').filter(x => x.fieldId === o.id).forEach(x => { x.lostField = o.id; x.lostDoc = x.docId || x.lostDoc || ''; x.fieldId = null; x.docId = null; touch('todos', x); });
+    live('exams').filter(x => x.fieldId === o.id).forEach(x => { x.lostField = o.id; x.fieldId = null; touch('exams', x); });
+    live('events').filter(x => x.fieldId === o.id).forEach(x => { x.lostField = o.id; x.fieldId = null; touch('events', x); });
     live('grades').filter(x => x.fieldId === o.id).forEach(x => del('grades', x));
   }
   if (t === 'docs') {
     live('atts').filter(a => a.docId === o.id).forEach(a => del('atts', a));
-    live('todos').filter(x => x.docId === o.id).forEach(x => { x.docId = null; touch('todos', x); });
+    live('todos').filter(x => x.docId === o.id).forEach(x => { x.lostDoc = o.id; x.docId = null; touch('todos', x); });
   }
-  if (t === 'atts') dropLocalBlob(o.id);
+  // Zuordnungen von Aufgaben/Arbeiten/Terminen merkt sich lostField/lostDoc, damit „Zurückholen“ sie wiederherstellt.
+  // Dateien gelöschter Anhänge bleiben auf dem Gerät, bis sie aus dem Papierkorb fallen (purgeTrash)
 }
 /* ---------- Noten (Skala 1–6, einfacher Durchschnitt) ---------- */
 // akzeptiert „2“, „2,3“, „2.5“, „2+“ (= 1,7) und „2-“ (= 2,3)
@@ -722,6 +735,43 @@ function gradeAvg(list) { return list.length ? list.reduce((n, g) => n + g.value
 const isZeugnis = g => g.zeugnis != null ? !!g.zeugnis : /^zeugnis/i.test((g.label || '').trim());
 const normalGradesOfField = fid => gradesOfField(fid).filter(g => !isZeugnis(g));
 const zeugnisOfField = fid => gradesOfField(fid).find(isZeugnis) || null;
+/* ---------- Wiederkehrende Aufgaben ----------
+   Optionale Felder an Aufgaben: repeat ('daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'), repeatBase (ursprüngliches
+   Datum, damit „monatlich am 31.“ nicht wandert), nextId (die beim Abhaken angelegte nächste Aufgabe). Beim Abhaken entsteht
+   eine neue Aufgabe mit dem nächsten Termin; die erledigte bleibt als Verlauf. */
+const REPEATS = { daily: 'Täglich', weekly: 'Wöchentlich', biweekly: 'Alle 2 Wochen', monthly: 'Monatlich', yearly: 'Jährlich' };
+function addRepeat(dy, rep, base) {
+  const d = parseYmd(dy);
+  if (rep === 'daily') d.setDate(d.getDate() + 1);
+  else if (rep === 'weekly') d.setDate(d.getDate() + 7);
+  else if (rep === 'biweekly') d.setDate(d.getDate() + 14);
+  else if (rep === 'monthly' || rep === 'yearly') {
+    const day = parseYmd(base || dy).getDate();
+    d.setDate(1); d.setMonth(d.getMonth() + (rep === 'monthly' ? 1 : 12));
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  } else return null;
+  return ymd(d);
+}
+function nextRepeatDue(t) {   // nächster Termin nach dem bisherigen, mindestens heute (falls verspätet abgehakt)
+  const base = t.repeatBase || t.due, t0 = today();
+  let n = addRepeat(t.due, t.repeat, base);
+  for (let i = 0; n && n < t0 && i < 2000; i++) n = addRepeat(n, t.repeat, base);
+  return n;
+}
+function completeRepeat(t) {
+  if (!t.repeat || !REPEATS[t.repeat] || !t.due) return null;
+  if (t.nextId && byId('todos', t.nextId)) return null;   // schon angelegt (z. B. nach Abhaken, Zurücknehmen, wieder Abhaken)
+  const due = nextRepeatDue(t); if (!due) return null;
+  const n = add('todos', { title: t.title, due, prio: t.prio ?? 1, done: false, note: t.note || '', subs: (t.subs || []).map(x => ({ id: uid(), t: x.t, d: false })),
+    fieldId: t.fieldId || null, docId: t.docId || null, space: t.space || todoSpace(t), remind: t.remind ?? null, notifyTime: t.notifyTime || '',
+    repeat: t.repeat, repeatBase: t.repeatBase || t.due, repeatOf: t.id });
+  t.nextId = n.id;
+  return n;
+}
+function undoRepeat(t) {   // Abhaken zurückgenommen: die noch unberührte nächste Aufgabe wieder entfernen
+  const n = t.nextId && byId('todos', t.nextId);
+  if (n && !n.done && n.updatedAt === n.createdAt) { n.trashHide = true; del('todos', n); t.nextId = null; }
+}
 const fmtAvg = v => v == null ? '–' : v.toFixed(2).replace('.', ',');
 const gradeTone = v => v == null ? '' : v < 2.5 ? 'g-good' : v < 3.5 ? 'g-ok' : v < 4.5 ? 'g-warn' : 'g-bad';
 const fieldsOfYear = yid => live('fields').filter(f => f.yearId === yid).sort((a, b) => cmp(a.name, b.name));
@@ -1166,7 +1216,6 @@ function mergeIn(data) {
       if (!l) { S[k].push(r); persist(k, r); changed = true; }
       else if ((r.updatedAt || 0) > (l.updatedAt || 0)) {
         Object.keys(l).forEach(p => delete l[p]); Object.assign(l, r); persist(k, l); changed = true;
-        if (k === 'atts' && l.deleted) dropLocalBlob(l.id);
       }
     }
     for (const [id, l] of local) {
@@ -1280,6 +1329,99 @@ async function ensureBlob(a) {
   try { await downloadAtt(a); }
   catch (e) { if (has) return getBlob(a.id); throw e; }
   return getBlob(a.id);
+}
+
+/* ---------- Papierkorb ----------
+   Gelöscht wird weich (deleted: true, updatedAt = Löschzeit). Der Papierkorb zeigt die letzten TRASH_DAYS Tage.
+   Was zusammen mit einem Eltern-Eintrag gelöscht wurde (innerhalb von 5 s, z. B. Lernfeld → Unterlagen → Fotos),
+   kommt mit ihm zurück. Dateien: liegen lokal noch vor (purgeTrash räumt erst nach TRASH_DAYS auf), sonst aus der
+   Cloud bzw. aus dem Verlauf des Daten-Repos (der Sync löscht Dateien gelöschter Anhänge dort sofort). */
+const TRASH_DAYS = 30;
+const TRASH_TYPES = [['years', 'Schuljahr', 'folder'], ['fields', '', 'folder'], ['docs', 'Unterlage', 'file'], ['atts', '', 'image'], ['todos', 'Aufgabe', 'check'],
+  ['exams', 'Arbeit', 'warn'], ['events', 'Termin', 'cal'], ['notes', 'Notiz', 'note'], ['grades', 'Note', 'list']];
+const TRASH_PARENT = { atts: ['docs', 'docId'], docs: ['fields', 'fieldId'], grades: ['fields', 'fieldId'], fields: ['years', 'yearId'] };
+const anyById = (t, id) => id ? S[t].find(x => x.id === id) : null;
+const together = (a, b) => !!(a && b && a.deleted && b.deleted && Math.abs((a.updatedAt || 0) - (b.updatedAt || 0)) < 5000);
+const trashParent = (t, x) => TRASH_PARENT[t] ? anyById(TRASH_PARENT[t][0], x[TRASH_PARENT[t][1]]) : null;
+function trashTitle(t, x) {
+  if (t === 'years' || t === 'fields') return x.name || '–';
+  if (t === 'docs') return x.title || 'Ohne Titel';
+  if (t === 'atts') { const d = anyById('docs', x.docId); return (x.name || 'Datei') + (d ? ` (${d.title || 'Unterlage'})` : ''); }
+  if (t === 'notes') return (x.text || '').split('\n')[0] || '(leer)';
+  if (t === 'grades') return `${fmtGrade(x)} – ${x.label || 'Note'}`;
+  return x.title || '–';
+}
+function trashTree(t, x, acc = []) {   // mitgelöschte Unterelemente
+  const kids = t === 'years' ? S.fields.filter(f => f.yearId === x.id).map(f => ['fields', f])
+    : t === 'fields' ? [...S.docs.filter(d => d.fieldId === x.id).map(d => ['docs', d]), ...S.grades.filter(g => g.fieldId === x.id).map(g => ['grades', g])]
+    : t === 'docs' ? S.atts.filter(a => a.docId === x.id).map(a => ['atts', a]) : [];
+  for (const [kt, k] of kids) if (together(k, x)) { acc.push([kt, k]); trashTree(kt, k, acc); }
+  return acc;
+}
+function trashItems() {
+  const lim = now() - TRASH_DAYS * 864e5, out = [];
+  for (const [t, label, icon] of TRASH_TYPES) for (const x of S[t]) {
+    if (!x.deleted || x.trashHide || (x.updatedAt || 0) < lim) continue;
+    if (together(x, trashParent(t, x))) continue;   // kommt mit dem Eltern-Eintrag zurück
+    out.push({ t, x, icon, label: label || (t === 'fields' ? FWORD[spaceOfField(x)] : x.role === 'photo' ? 'Foto' : 'Datei') });
+  }
+  return out.sort((a, b) => (b.x.updatedAt || 0) - (a.x.updatedAt || 0));
+}
+function purgeTrash() {   // Dateien, die länger als TRASH_DAYS im Papierkorb liegen, vom Gerät entfernen
+  const lim = now() - TRASH_DAYS * 864e5;
+  S.atts.filter(a => a.deleted && (a.updatedAt || 0) < lim && HAVE.has(a.id)).forEach(a => dropLocalBlob(a.id));
+}
+async function recoverFromHistory(a) {   // Datei aus dem Verlauf des Daten-Repos holen
+  const c = cfg(), path = remotePath(a);
+  const list = await (await gh(c, 'GET', `/repos/${c.repo}/commits?path=${path}&sha=${encodeURIComponent(c.branch || 'main')}&per_page=10`)).json();
+  for (const cm of Array.isArray(list) ? list : []) {
+    for (const ref of [cm.sha, ...(cm.parents || []).map(p => p.sha)]) {
+      try {
+        const j = await (await gh(c, 'GET', `/repos/${c.repo}/contents/${path}?ref=${ref}`)).json();
+        if (j && j.sha) { await saveDownloaded(a, await (await ghRaw(c, j.sha)).arrayBuffer()); return true; }
+      } catch (e) { if (e.status !== 404) throw e; }
+    }
+  }
+  return false;
+}
+async function restoreTrash(t, x) {
+  const list = [[t, x], ...trashTree(t, x)];
+  for (let ct = t, cx = x; TRASH_PARENT[ct];) {   // gelöschte Eltern mit zurückholen, sonst hängt der Eintrag in der Luft
+    const [pt, key] = TRASH_PARENT[ct], p = anyById(pt, cx[key]);
+    if (!p || !p.deleted) break;
+    list.push([pt, p], ...trashTree(pt, p)); ct = pt; cx = p;   // Eltern so zurück, wie sie gelöscht wurden (mit ihren Unterelementen)
+  }
+  const seen = new Set();
+  for (let i = list.length - 1; i >= 0; i--) { if (seen.has(list[i][1])) list.splice(i, 1); else seen.add(list[i][1]); }
+  // Erst die Dateien holen: Ein Anhang ohne Datei bleibt im Papierkorb, statt leer in der Unterlage zu stehen.
+  const canFetch = configured() && navigator.onLine;
+  let missing = 0;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const [tt, a] = list[i];
+    if (tt !== 'atts') continue;
+    const have = HAVE.has(a.id);
+    if (have && (await idbGet('meta', 'rev:' + a.id)) === a.rev) continue;   // passende Fassung liegt auf dem Gerät
+    let ok = false;
+    if (canFetch) {
+      try { await downloadAtt(a); ok = true; } catch (e) { /* nicht mehr in der Cloud */ }
+      if (!ok) { try { ok = await recoverFromHistory(a); } catch (e) { ok = false; } }
+    }
+    if (!ok && !have) { list.splice(i, 1); missing++; }   // ältere Fassung auf dem Gerät ist besser als nichts
+  }
+  for (const [tt, o] of list) { o.deleted = false; delete o.trashHide; touch(tt, o); }
+  // Aufgaben, Arbeiten und Termine wieder zuordnen, die beim Löschen ihr Lernfeld bzw. ihre Unterlage verloren haben
+  const back = new Set(list.map(([, o]) => o.id));
+  for (const tt of ['todos', 'exams', 'events']) for (const o of live(tt)) {
+    let ch = false;
+    if (o.lostField && back.has(o.lostField)) { if (!o.fieldId) o.fieldId = o.lostField; o.lostField = ''; ch = true; }
+    if (o.lostDoc && back.has(o.lostDoc)) {
+      const d = byId('docs', o.lostDoc);
+      if (!o.docId && d && d.fieldId === o.fieldId) o.docId = d.id;
+      o.lostDoc = ''; ch = true;
+    }
+    if (ch) touch(tt, o);
+  }
+  return { count: list.length, missing, retry: configured() && !navigator.onLine };
 }
 
 async function testConnection(c) {
@@ -1424,6 +1566,106 @@ async function importJSON(file) {
   const m = mergeIn(data); scheduleSync();
   return m.changed;
 }
+/* ---------- Sicherung als ZIP: Daten + alle Dateien und Fotos ----------
+   Aufbau: lifevault-daten.json (wie die JSON-Sicherung) + files/<id>-<rev> (wie im Daten-Repo).
+   Ohne Kompression (Fotos sind schon JPEG); beim Einlesen werden auch komprimierte ZIPs verstanden. */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipBuild(entries) {   // entries: [{ name, blob, crc, size }]
+  const enc = new TextEncoder(), parts = [], cen = [], d = new Date();
+  const dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+  const dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  let off = 0, cenSize = 0;
+  for (const e of entries) {
+    const nm = enc.encode(e.name);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);   // 0x0800: Namen in UTF-8
+    lh.setUint16(10, dt, true); lh.setUint16(12, dd, true); lh.setUint32(14, e.crc, true); lh.setUint32(18, e.size, true); lh.setUint32(22, e.size, true); lh.setUint16(26, nm.length, true);
+    parts.push(lh.buffer, nm, e.blob);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(12, dt, true); ch.setUint16(14, dd, true); ch.setUint32(16, e.crc, true); ch.setUint32(20, e.size, true); ch.setUint32(24, e.size, true);
+    ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    cen.push(ch.buffer, nm); cenSize += 46 + nm.length;
+    off += 30 + nm.length + e.size;
+  }
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true); eo.setUint16(8, entries.length, true); eo.setUint16(10, entries.length, true); eo.setUint32(12, cenSize, true); eo.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, eo.buffer], { type: 'application/zip' });
+}
+async function zipRead(file) {
+  const tailLen = Math.min(file.size, 65557), tail = new DataView(await file.slice(file.size - tailLen).arrayBuffer());
+  let eocd = -1;
+  for (let i = tail.byteLength - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Die ZIP-Datei ist beschädigt');
+  const n = tail.getUint16(eocd + 10, true), cenSize = tail.getUint32(eocd + 12, true), cenOff = tail.getUint32(eocd + 16, true);
+  const cen = new DataView(await file.slice(cenOff, cenOff + cenSize).arrayBuffer()), dec = new TextDecoder(), map = new Map();
+  for (let i = 0, q = 0; i < n; i++) {
+    if (cen.getUint32(q, true) !== 0x02014b50) throw new Error('Die ZIP-Datei ist beschädigt');
+    const nlen = cen.getUint16(q + 28, true);
+    map.set(dec.decode(new Uint8Array(cen.buffer, q + 46, nlen)), { method: cen.getUint16(q + 10, true), csize: cen.getUint32(q + 20, true), loff: cen.getUint32(q + 42, true) });
+    q += 46 + nlen + cen.getUint16(q + 30, true) + cen.getUint16(q + 32, true);
+  }
+  const get = async name => {
+    const e = map.get(name); if (!e) return null;
+    const lh = new DataView(await file.slice(e.loff, e.loff + 30).arrayBuffer());
+    const start = e.loff + 30 + lh.getUint16(26, true) + lh.getUint16(28, true), raw = file.slice(start, start + e.csize);
+    if (e.method === 0) return raw;
+    if (e.method === 8 && typeof DecompressionStream !== 'undefined') return new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+    throw new Error('Diese Art von ZIP-Datei kann LifeVault nicht lesen');
+  };
+  return { names: [...map.keys()], get };
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+async function exportZIP(progress = () => {}) {
+  const json = new TextEncoder().encode(JSON.stringify(snapshot(), null, 1));
+  const entries = [{ name: 'lifevault-daten.json', blob: new Blob([json]), crc: crc32(json), size: json.length }];
+  const atts = live('atts'); let remote = null, missing = 0, i = 0;
+  for (const a of atts) {
+    progress(`Datei ${++i} von ${atts.length}`);
+    let blob = HAVE.has(a.id) && (await idbGet('meta', 'rev:' + a.id)) === a.rev ? await getBlob(a.id) : null;
+    if (!blob && configured() && navigator.onLine) {   // nur in der Cloud → für die Sicherung kurz holen (nicht auf dem Gerät speichern)
+      try { if (!remote) remote = await ghTree(cfg()); const sha = remote.files.get(remotePath(a)); if (sha) blob = new Blob([await (await ghRaw(cfg(), sha)).arrayBuffer()]); }
+      catch (e) { blob = null; }
+    }
+    if (!blob) { missing++; continue; }
+    const u8 = new Uint8Array(await blob.arrayBuffer());
+    entries.push({ name: remotePath(a), blob, crc: crc32(u8), size: u8.length });
+  }
+  progress('Packe die Sicherung …');
+  downloadBlob(zipBuild(entries), `lifevault-sicherung-${today()}.zip`);
+  return { files: entries.length - 1, missing };
+}
+async function importBackup(file) {
+  const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (!(head[0] === 0x50 && head[1] === 0x4b && head[2] === 3 && head[3] === 4)) return { changed: await importJSON(file), files: 0 };
+  const z = await zipRead(file), jb = await z.get('lifevault-daten.json');
+  if (!jb) throw new Error('In der ZIP-Datei fehlt lifevault-daten.json – ist das eine LifeVault-Sicherung?');
+  const data = JSON.parse(await jb.text());
+  if (!data || data.app !== 'schulvault') throw new Error('Das ist keine LifeVault-Sicherung');
+  const m = mergeIn(data);
+  let files = 0;
+  for (const name of z.names) {
+    const mm = name.match(/^files\/([^/]+)-([^/-]+)$/); if (!mm) continue;
+    const a = S.atts.find(x => x.id === mm[1]);
+    if (!a || a.deleted || a.rev !== mm[2]) continue;   // veraltete Fassung oder gelöscht
+    if (HAVE.has(a.id) && (await idbGet('meta', 'rev:' + a.id)) === a.rev) continue;   // schon auf dem Gerät
+    const b = await z.get(name);
+    await resetThumb(a.id); await putBlob(a.id, new Blob([b], { type: a.mime || 'application/octet-stream' }), a.rev);
+    files++;
+  }
+  scheduleSync();   // fehlen Dateien im Daten-Repo, lädt der Sync sie hoch
+  return { changed: m.changed || files > 0, files };
+}
+function progressModal(title) {
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-live="polite"><h3>${esc(title)}</h3><p class="muted" data-p style="margin:6px 0 4px">…</p></div>`;
+  document.body.appendChild(m);
+  return { set: t => { $('[data-p]', m).textContent = t; }, close: () => m.remove() };
+}
 /* =====================================================================
    Oberfläche Teil 1: Dialoge, Router, Ansichten (Start, Schuljahr/Kategorie, Lernfeld, Unterlage)
    ===================================================================== */
@@ -1556,7 +1798,7 @@ function todoRow(t, opt = {}) {
     <button class="chk" data-a="todo-toggle" data-id="${t.id}" aria-label="Erledigt umschalten">${t.done ? ic('check') : ''}</button>
     <div class="tbody" data-a="todo-edit" data-id="${t.id}"><div class="ttl">${esc(t.title)}</div>
       <div class="tmeta">${opt.tag || ''}${f && !opt.noField ? `<span class="tag fld">${esc(f.name)}</span>` : ''}${due}
-      ${t.prio === 2 ? `<span class="tag p2">${ic('flag')}Wichtig</span>` : ''}${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}${subs.length ? `<span class="tag">${ic('list')}${sd}/${subs.length}</span>` : ''}
+      ${t.repeat && REPEATS[t.repeat] && !t.done ? `<span class="tag">${ic('repeat')}${esc(REPEATS[t.repeat])}</span>` : ''}${t.prio === 2 ? `<span class="tag p2">${ic('flag')}Wichtig</span>` : ''}${soon ? `<span class="tag p2">${ic('bell')}Bald</span>` : ''}${subs.length ? `<span class="tag">${ic('list')}${sd}/${subs.length}</span>` : ''}
       ${d && !opt.noDoc ? `<span class="tag">${ic('file')}${esc(d.title || 'Unterlage')}</span>` : ''}</div></div></div>`;
 }
 function quickForm(ctx) {
@@ -1578,7 +1820,7 @@ function render(nav = false) {
   const [a, id] = (location.hash.slice(1) || '/').split('/').filter(Boolean);
   let v;
   try {
-    v = !a ? vDashboard() : a === 'inhalte' ? vInhalte() : a === 'y' ? vYear(id) : a === 'f' ? vField(id) : a === 'd' ? vDoc(id) : a === 'todo' ? vTodos() : a === 'notizen' ? vNotizen() : a === 'cal' ? vCal() : a === 'search' ? vSearch() : a === 'settings' ? vSettings() : vDashboard();
+    v = !a ? vDashboard() : a === 'inhalte' ? vInhalte() : a === 'y' ? vYear(id) : a === 'f' ? vField(id) : a === 'd' ? vDoc(id) : a === 'todo' ? vTodos() : a === 'notizen' ? vNotizen() : a === 'cal' ? vCal() : a === 'search' ? vSearch() : a === 'papierkorb' ? vTrash() : a === 'teilen' ? vShare() : a === 'settings' ? vSettings() : vDashboard();
   } catch (e) { console.error(e); v = { title: 'Fehler', body: `<div class="card empty"><p>${esc(e.message)}</p></div>` }; }
   if (!v) { location.replace('#/'); return; }
   $('#top').innerHTML = `${v.back ? `<button class="icon-btn" data-a="nav" data-to="${v.back}" aria-label="Zurück">${ic('back')}</button>` : ''}
@@ -1588,12 +1830,12 @@ function render(nav = false) {
   if (nav) window.scrollTo(0, 0);
 }
 const NAV_ITEMS = [
-  ['/', 'home', 'Start', ['']],
+  ['/', 'home', 'Start', ['', 'teilen']],
   ['/inhalte', 'folder', 'Inhalte', ['inhalte', 'y', 'f', 'd', 'todo']],
   ['/notizen', 'note', 'Notizen', ['notizen']],
   ['/cal', 'cal', 'Kalender', ['cal']],
   ['/search', 'search', 'Suche', ['search']],
-  ['/settings', 'sliders', 'Optionen', ['settings']]
+  ['/settings', 'sliders', 'Optionen', ['settings', 'papierkorb']]
 ];
 function renderNav(a) {
   const over = todosOpen().filter(t => t.due && t.due <= today()).length, soon = examSoonCount() + eventSoonCount();
@@ -1954,6 +2196,8 @@ function todoModal(id) {
     <label class="lbl">Titel</label><input class="inp" name="title" value="${esc(t.title)}" autocomplete="off">
     <div class="two"><div><label class="lbl">Fällig am</label><input type="date" class="inp" name="due" value="${esc(t.due || '')}"></div>
     <div><label class="lbl">Wichtigkeit</label><select class="inp" name="prio"><option value="0">Niedrig</option><option value="1">Normal</option><option value="2">Hoch</option></select></div></div>
+    <label class="lbl">Wiederholen</label><select class="inp" name="repeat"><option value="">Nicht wiederholen</option>${Object.entries(REPEATS).map(([k, l]) => `<option value="${k}" ${t.repeat === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <p class="hint" data-rephint style="margin:4px 2px 0;${t.repeat ? '' : 'display:none'}">Beim Abhaken erscheint die Aufgabe automatisch mit dem nächsten Termin wieder.</p>
     <div class="two"><div><label class="lbl">${FWORD[sp]}</label><div style="display:flex;gap:6px"><select class="inp" name="field">${fieldOptions(t.fieldId, true, sp)}</select><button type="button" class="btn small" data-a="field-quick-new" data-space="${sp}" aria-label="Neu${sp === 'alltag' ? 'e Kategorie' : 'es Lernfeld'} anlegen">${ic('plus')}</button></div></div>
     <div><label class="lbl">Unterlage</label><select class="inp" name="doc">${docOptions(t.fieldId, t.docId)}</select></div></div>
     <label class="lbl">Teilaufgaben</label><div id="subs"></div>
@@ -1974,6 +2218,7 @@ function todoModal(id) {
     $('#addsub', m).onclick = push;
     $('#newsub', m).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); push(); } });
     F.field.onchange = () => { F.doc.innerHTML = docOptions(F.field.value, null); };
+    F.repeat.onchange = () => { $('[data-rephint]', m).style.display = F.repeat.value ? '' : 'none'; };
     $('[data-del]', m).onclick = () => {
       done(null); del('todos', t); render();
       toast('Aufgabe gelöscht', '', { label: 'Rückgängig', fn: () => { t.deleted = false; touch('todos', t); render(); } });
@@ -1982,7 +2227,12 @@ function todoModal(id) {
       e.preventDefault();
       const title = F.title.value.trim(); if (!title) { F.title.focus(); return; }
       const pend = $('#newsub', m).value.trim();
+      const oldDue = t.due || '', oldRep = t.repeat || '', rp = F.repeat.value;
       t.title = title; t.due = F.due.value; t.prio = +F.prio.value; t.note = F.note.value;
+      if (rp && !t.due) t.due = today();   // Wiederholung braucht ein Datum
+      if (rp && (rp !== oldRep || t.due !== oldDue || !t.repeatBase)) t.repeatBase = t.due;   // neuer Rhythmus/Termin → Bezugstag neu
+      if (!rp) t.repeatBase = '';
+      t.repeat = rp;
       t.fieldId = F.field.value || null; t.space = sp;
       const dd = F.doc.value ? byId('docs', F.doc.value) : null;
       t.docId = dd && dd.fieldId === t.fieldId ? dd.id : null;
@@ -1993,6 +2243,77 @@ function todoModal(id) {
     };
     setTimeout(() => F.title.focus(), 30);
   });
+}
+
+/* ---------- Ansicht: Teilen (Dateien und Texte aus anderen Apps; der Service Worker legt sie im Cache sv-share ab) ---------- */
+const SHARE_CACHE = 'sv-share';
+async function loadShare() {
+  const d = { files: [], urls: [], title: '', text: '', url: '' };
+  try {
+    const c = await caches.open(SHARE_CACHE), mr = await c.match('./__teilen/meta');
+    if (!mr) return d;
+    const meta = await mr.json();
+    Object.assign(d, { title: meta.title || '', text: meta.text || '', url: meta.url || '' });
+    for (const f of meta.files || []) {
+      const r = await c.match(f.key); if (!r) continue;
+      const file = new File([await r.blob()], f.name || 'Datei', { type: f.type || '' });
+      d.files.push(file); d.urls.push(isImageFile(file) ? URL.createObjectURL(file) : null);
+    }
+  } catch (e) { /* kein Cache-Speicher → nichts geteilt */ }
+  return d;
+}
+const isImageFile = f => /^image\//.test(f.type || '') || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name || '');
+async function clearShare() {
+  if (UI.share && UI.share.urls) UI.share.urls.forEach(u => u && URL.revokeObjectURL(u));
+  UI.share = undefined;
+  try { await caches.delete(SHARE_CACHE); } catch (e) { /* egal */ }
+}
+function vShare() {
+  if (UI.share === undefined) { UI.share = null; loadShare().then(d => { UI.share = d; if (location.hash.startsWith('#/teilen')) render(); }); }
+  const d = UI.share, back = '/';
+  if (!d) return { title: 'Teilen', back, body: `<p class="hint">Lädt …</p>` };
+  const txt = [d.title && d.title !== d.text ? d.title : '', d.text, d.url && !d.text.includes(d.url) ? d.url : ''].filter(Boolean).join('\n');
+  if (!d.files.length && !txt) return { title: 'Teilen', back, body: `<div class="card empty">${ic('share')}<p>Nichts zum Ablegen. Teile in einer anderen App, z. B. in der Galerie oder bei WhatsApp, Fotos oder Dateien mit LifeVault – dann landen sie hier.</p></div>` };
+  if (!d.files.length) return { title: 'Teilen', back, body: `<section><div class="sec-h"><h2>Geteilter Text</h2></div><div class="card pad"><p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${esc(txt)}</p></div>
+    <div class="actions" style="margin-top:14px"><button class="btn primary" data-a="share-note">${ic('note')} Als Notiz speichern</button><button class="btn ghost" data-a="share-discard">Verwerfen</button></div></section>` };
+  const n = d.files.length, hasField = live('fields').length > 0;
+  UI.shareMode = 'new';
+  const first = (d.files[0].name || '').replace(/\.[^.]+$/, '');
+  const prefill = d.title || (n === 1 && !isImageFile(d.files[0]) ? first : '');
+  let h = `<section><div class="sec-h"><h2>${n} ${n === 1 ? 'Datei' : 'Dateien'} geteilt</h2></div><div class="share-grid">${d.files.map((f, i) => d.urls[i]
+    ? `<figure><img src="${d.urls[i]}" alt=""><figcaption>${esc(f.name)}</figcaption></figure>`
+    : `<figure class="doc">${ic('file')}<figcaption>${esc(f.name)}<br>${esc(fmtSize(f.size))}</figcaption></figure>`).join('')}</div></section>`;
+  h += `<form class="card pad" data-a-submit="share-save">
+    <label class="lbl">Ablegen in</label>
+    <div class="seg"><button type="button" data-a="share-mode" data-v="new" class="on">${ic('plus')} Neue Unterlage</button><button type="button" data-a="share-mode" data-v="add">${ic('file')} Vorhandene</button></div>
+    <label class="lbl">${FWORD_ALL}</label><div style="display:flex;gap:6px"><select class="inp" name="field" data-a-change="share-field">${hasField ? fieldOptions(UI.shareField || '', false, 'alle') : `<option value="">– noch keins angelegt –</option>`}</select>
+      <button type="button" class="btn small" data-a="field-quick-new" data-space="schule" aria-label="Neues Lernfeld">${ic('plus')}</button></div>
+    <div data-sm="new"><label class="lbl">Titel der Unterlage</label><input class="inp" name="title" value="${esc(prefill)}" placeholder="z. B. Arbeitsblatt Kapitel 3" autocomplete="off"></div>
+    <div data-sm="add" hidden><label class="lbl">Unterlage</label><select class="inp" name="doc"></select></div>
+    ${txt ? `<p class="hint" style="margin-top:8px">Der mitgeteilte Text kommt in die Notiz der Unterlage.</p>` : ''}
+    <div class="mact"><button type="button" class="btn ghost" data-a="share-discard">Verwerfen</button><button class="btn primary">${ic('download')} Ablegen</button></div></form>`;
+  return { title: 'Teilen', back, body: h };
+}
+
+/* ---------- Ansicht: Papierkorb ---------- */
+function trashKidsLabel(kids) {
+  const n = k => kids.filter(([t, x]) => k(t, x)).length, parts = [];
+  const nf = n(t => t === 'fields'), nd = n(t => t === 'docs'), np = n((t, x) => t === 'atts' && x.role === 'photo'), na = n((t, x) => t === 'atts' && x.role !== 'photo'), ng = n(t => t === 'grades');
+  if (nf) parts.push(`${nf} ${nf === 1 ? 'Lernfeld' : 'Lernfelder'}`);
+  if (nd) parts.push(`${nd} ${nd === 1 ? 'Unterlage' : 'Unterlagen'}`);
+  if (np) parts.push(`${np} ${np === 1 ? 'Foto' : 'Fotos'}`);
+  if (na) parts.push(`${na} ${na === 1 ? 'Datei' : 'Dateien'}`);
+  if (ng) parts.push(`${ng} ${ng === 1 ? 'Note' : 'Noten'}`);
+  return parts.length ? 'mit ' + parts.join(', ') : '';
+}
+function vTrash() {
+  const items = trashItems();
+  let h = `<p class="hint" style="margin:0 2px 14px">Gelöschtes bleibt hier ${TRASH_DAYS} Tage lang. „Zurückholen“ stellt es auf allen Geräten wieder her, samt allem, was mit ihm gelöscht wurde.</p>`;
+  h += items.length ? `<div class="card">${items.map(it => `<div class="row trash-row"><span class="ico">${ic(it.icon)}</span>
+      <span class="grow"><b>${esc(trashTitle(it.t, it.x))}</b><small>${esc([it.label, trashKidsLabel(trashTree(it.t, it.x)), 'gelöscht ' + fmtDue(ymd(new Date(it.x.updatedAt || now()))).toLowerCase()].filter(Boolean).join(' · '))}</small></span>
+      <button class="btn small" data-a="trash-restore" data-t="${it.t}" data-id="${it.x.id}">${ic('undo')} Zurückholen</button></div>`).join('')}</div>`
+    : `<div class="card empty">${ic('trash')}<p>Der Papierkorb ist leer.</p></div>`;
+  return { title: 'Papierkorb', back: '/settings', body: h };
 }
 
 /* ---------- Ansicht: Notizen (schnelle Einzel-Notizen, später zuordbar) ---------- */
@@ -2141,10 +2462,11 @@ function vSettings() {
     <div class="kv"><span>Arbeiten / Turnus-Wochen</span><b>${cnt('exams')} / ${live('turnusWeeks').length}</b></div>
     <div class="kv"><span>Termine</span><b>${cnt('events')}</b></div>
     <div class="kv"><span>Belegter Speicher</span><b id="storinfo">…</b></div>
-    <div class="actions"><button class="btn" data-a="export">${ic('download')} Sicherung (JSON)</button><button class="btn" data-a="import">${ic('plus')} Sicherung einlesen</button>
+    <div class="actions"><button class="btn" data-a="export-zip">${ic('download')} Sicherung mit Fotos (ZIP)</button><button class="btn" data-a="export">${ic('download')} Nur Daten (JSON)</button><button class="btn" data-a="import">${ic('plus')} Sicherung einlesen</button>
+      <button class="btn" data-a="nav" data-to="/papierkorb">${ic('trash')} Papierkorb${trashItems().length ? ` (${trashItems().length})` : ''}</button>
       ${deferredInstall ? `<button class="btn primary" data-a="install">${ic('download')} App installieren</button>` : ''}
       <button class="btn danger" data-a="wipe">${ic('trash')} Alles auf diesem Gerät löschen</button></div>
-    <p class="hint">Die Sicherung enthält Ordner, Notizen und Aufgaben, aber keine Dateien und Fotos – die liegen (bei aktivem Sync) im GitHub-Repo.</p></div></section>
+    <p class="hint">Die ZIP-Sicherung enthält alles, auch Fotos und Dateien. Was nur in der Cloud liegt, wird dafür kurz heruntergeladen. „Nur Daten“ enthält Ordner, Notizen, Aufgaben und Noten ohne Dateien. „Sicherung einlesen“ versteht beides.</p></div></section>
     <p class="muted" style="text-align:center;font-size:.85rem">LifeVault ${APP_VERSION}</p>`;
   return { title: 'Optionen', body: h };
 }
@@ -2360,7 +2682,13 @@ const ACT = {
     finally { el.classList.remove('busy'); el.disabled = false; }
   },
   tfilter: el => { UI.tfilter = el.dataset.v; render(); },
-  'todo-toggle': el => { const t = byId('todos', el.dataset.id); if (!t) return; t.done = !t.done; t.doneAt = t.done ? now() : null; touch('todos', t); render(); },
+  'todo-toggle': el => {
+    const t = byId('todos', el.dataset.id); if (!t) return;
+    t.done = !t.done; t.doneAt = t.done ? now() : null;
+    const n = t.done ? completeRepeat(t) : (undoRepeat(t), null);
+    touch('todos', t); render();
+    if (n) toast(`Nächstes Mal: ${fmtDue(n.due)}`);
+  },
   'todo-edit': el => todoModal(el.dataset.id),
   'todo-clear': async () => {
     const list = todosOfFilter(UI.filter).filter(t => t.done && (!UI.tfield || t.fieldId === UI.tfield));
@@ -2391,7 +2719,40 @@ const ACT = {
       const c = cfg(); delete c.token; delete c.repo; saveCfg(c); setSync('off', ''); render(); toast('Sync getrennt');
     }
   },
+  'share-mode': el => {
+    const f = el.closest('form'); if (!f) return;
+    UI.shareMode = el.dataset.v;
+    $$('[data-a="share-mode"]', f).forEach(b => b.classList.toggle('on', b === el));
+    $$('[data-sm]', f).forEach(x => { x.hidden = x.dataset.sm !== UI.shareMode; });
+    if (UI.shareMode === 'add') f.doc.innerHTML = docOptions(f.field.value, null);
+  },
+  'share-discard': async () => { await clearShare(); go('/'); toast('Verworfen'); },
+  'share-note': async () => {
+    const d = UI.share; if (!d) return;
+    const text = [d.title && d.title !== d.text ? d.title : '', d.text, d.url && !d.text.includes(d.url) ? d.url : ''].filter(Boolean).join('\n');
+    add('notes', { text, space: UI.filter !== 'alle' ? UI.filter : 'schule', fieldId: null, docId: null });
+    await clearShare(); go('/notizen'); toast('Als Notiz gespeichert');
+  },
+  'trash-restore': async el => {
+    const t = el.dataset.t, x = TRASH_TYPES.some(([k]) => k === t) ? S[t].find(o => o.id === el.dataset.id) : null;
+    if (!x || el.disabled) return;
+    el.disabled = true; el.innerHTML = 'Moment …';
+    const r = await restoreTrash(t, x);
+    render();
+    const why = r.retry ? 'ohne Internet nicht abrufbar – später nochmal versuchen' : 'nicht mehr vorhanden';
+    const miss = r.missing ? `${r.missing} ${r.missing === 1 ? 'Datei' : 'Dateien'} ${why}${r.retry ? '' : ', bleibt im Papierkorb'}` : '';
+    toast(!r.missing ? 'Zurückgeholt' : r.count ? `Zurückgeholt – ${miss}` : miss, r.missing ? 'err' : '');
+  },
   export: () => exportJSON(),
+  'export-zip': async el => {
+    if (el.disabled) return; el.disabled = true;
+    const pm = progressModal('Sicherung mit Fotos wird erstellt');
+    try {
+      const r = await exportZIP(t => pm.set(t));
+      toast(r.missing ? `Sicherung erstellt – ${r.missing} ${r.missing === 1 ? 'Datei fehlt' : 'Dateien fehlen'} (nicht auf diesem Gerät und nicht in der Cloud)` : `Sicherung erstellt (${r.files} ${r.files === 1 ? 'Datei' : 'Dateien'})`, r.missing ? 'err' : '');
+    } catch (e) { toast(e.status ? friendlyErr(e) : 'Sicherung fehlgeschlagen: ' + (e.message || e), 'err'); }
+    finally { pm.close(); el.disabled = false; }
+  },
   import: () => $('#in-import').click(),
   install: async () => { if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {}); deferredInstall = null; render(); } },
   'notif-enable': async () => {
@@ -2416,6 +2777,7 @@ const ACT = {
 };
 const CHG = {
   dsort: el => { UI.dsort = el.value; render(); },
+  'share-field': el => { UI.shareField = el.value; const f = el.closest('form'); if (f && f.doc) f.doc.innerHTML = docOptions(el.value, null); },
   tfield: el => { UI.tfield = el.value; render(); },
   'doc-move': el => { const d = byId('docs', el.dataset.id); if (d && el.value) { d.fieldId = el.value; touch('docs', d); render(); showSaved(); } }
 };
@@ -2424,6 +2786,30 @@ const INP = {
   q: el => { UI.q = el.value; $('#sres').innerHTML = searchHTML(UI.q); }
 };
 const SUB = {
+  'share-save': async form => {
+    const d = UI.share, btn = $('.btn.primary', form);
+    if (!d || !d.files.length || btn.disabled) return;
+    const fid = form.field.value;
+    if (!fid) { toast('Bitte zuerst ein Lernfeld oder eine Kategorie wählen oder anlegen', 'err'); return; }
+    let docId = null;
+    const txt = [d.title && d.title !== d.text ? d.title : '', d.text, d.url && !d.text.includes(d.url) ? d.url : ''].filter(Boolean).join('\n');
+    if (UI.shareMode === 'add') {
+      docId = form.doc.value; if (!docId) { toast('Bitte eine Unterlage wählen', 'err'); return; }
+      const doc = byId('docs', docId);
+      if (doc && txt) { doc.note = [doc.note, txt].filter(Boolean).join('\n\n'); touch('docs', doc); }
+    } else {
+      docId = add('docs', { fieldId: fid, title: form.title.value.trim() || (d.files.length === 1 ? d.files[0].name : 'Geteilte Dateien'), kind: 'digital', date: today(), tags: [], note: txt, place: '' }).id;
+    }
+    btn.disabled = true; btn.textContent = 'Lege ab …';
+    const imgs = d.files.filter(isImageFile), rest = d.files.filter(f => !isImageFile(f));
+    let n = 0;
+    if (imgs.length) n += await addAttachments(docId, imgs, 'photo');
+    if (rest.length) n += await addAttachments(docId, rest, 'file');
+    UI.shareField = fid; UI.shareMode = 'new';
+    await clearShare();
+    go('/d/' + docId);
+    toast(`${n} ${n === 1 ? 'Datei' : 'Dateien'} abgelegt`);
+  },
   'todo-quick': form => {
     const title = form.t.value.trim(); if (!title) { form.t.focus(); return; }
     add('todos', { title, due: form.due.value || '', prio: 1, done: false, note: '', subs: [], fieldId: form.dataset.f || null, docId: form.dataset.d || null, space: form.dataset.sp || 'schule' });
@@ -2483,7 +2869,12 @@ function wire() {
   $('#in-file').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length && UI.attachDoc) afterAttach(UI.attachDoc, await addAttachments(UI.attachDoc, fs, 'file'), 'file'); });
   $('#in-import').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    try { const ch = await importJSON(f); toast(ch ? 'Sicherung eingelesen' : 'Nichts Neues in der Sicherung'); render(); } catch (err) { toast(err.message, 'err'); }
+    const pm = progressModal('Sicherung wird eingelesen'); pm.set(f.name);
+    try {
+      const r = await importBackup(f);
+      toast(r.files ? `Sicherung eingelesen (${r.files} ${r.files === 1 ? 'Datei' : 'Dateien'} wiederhergestellt)` : r.changed ? 'Sicherung eingelesen' : 'Nichts Neues in der Sicherung');
+      render();
+    } catch (err) { toast(err.message, 'err'); } finally { pm.close(); }
   });
   window.addEventListener('hashchange', () => { flushAll(); if (LB.open) { LB.open = false; const el = $('#lb'); if (el) el.remove(); } render(true); });
   window.addEventListener('pagehide', flushAll);
@@ -2509,6 +2900,7 @@ async function init() {
   catch (e) { document.body.innerHTML = '<p style="padding:24px;font-family:sans-serif">Der lokale Speicher (IndexedDB) ist nicht verfügbar. Bitte in einem normalen Browser-Tab (nicht im privaten Modus) öffnen.</p>'; return; }
   for (const k of COLL) S[k] = await idbAll(k);
   (await idb('blobs', 'readonly', o => o.getAllKeys())).forEach(k => { if (typeof k === 'string' && !k.startsWith('t:')) HAVE.add(k); });
+  purgeTrash();
   dedupeTurnusTypes();   // repariert doppelte Turnus-Arten aus früheren Geräte-Ersteinrichtungen vor dem ersten Sync
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   wire();

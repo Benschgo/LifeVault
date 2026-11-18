@@ -1,7 +1,8 @@
 // LifeVault Service Worker: Netzwerk zuerst (Updates kommen sofort an), Cache als Offline-Fallback
-const CACHE = 'schulvault-v13';
+const CACHE = 'schulvault-v14';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png?v=tresor', './kalender-bild.webp'];
 const PUSH_SEEN = 'sv-push-seen';   // gezeigte Erinnerungs-Schlüssel (teilt sich mit der App), damit nichts doppelt piept
+const SHARE = 'sv-share';           // aus anderen Apps geteilte Dateien, bis die App sie ablegt (Ansicht #/teilen)
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -9,12 +10,30 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== PUSH_SEEN).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== PUSH_SEEN && k !== SHARE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
+/* „Teilen → LifeVault“ (share_target im Manifest): Dateien und Text zwischenspeichern, dann die App öffnen */
+async function receiveShare(req) {
+  try {
+    const fd = await req.formData(), c = await caches.open(SHARE);
+    for (const k of await c.keys()) await c.delete(k);   // Reste vom letzten Mal
+    const meta = { at: Date.now(), title: String(fd.get('title') || ''), text: String(fd.get('text') || ''), url: String(fd.get('url') || ''), files: [] };
+    let i = 0;
+    for (const f of fd.getAll('files')) {
+      if (!f || typeof f === 'string' || !f.size) continue;
+      const key = './__teilen/' + (i++);
+      await c.put(new Request(key), new Response(f, { headers: { 'content-type': f.type || 'application/octet-stream' } }));
+      meta.files.push({ key, name: f.name || 'Datei ' + i, type: f.type || '', size: f.size });
+    }
+    await c.put(new Request('./__teilen/meta'), new Response(JSON.stringify(meta), { headers: { 'content-type': 'application/json' } }));
+  } catch (err) { /* trotzdem zur App, sie zeigt dann „Nichts zum Ablegen“ */ }
+  return Response.redirect(new URL('./#/teilen', self.registration.scope).href, 303);
+}
 self.addEventListener('fetch', e => {
   const req = e.request;
+  if (req.method === 'POST' && new URL(req.url).pathname.endsWith('/teilen-ziel')) { e.respondWith(receiveShare(req)); return; }
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return; // GitHub-API etc. nie anfassen
   e.respondWith(
     fetch(req, { cache: 'no-cache' })
