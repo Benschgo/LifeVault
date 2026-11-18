@@ -54,6 +54,7 @@ Wichtige Muster:
 - Sammlungen stehen im Array `COLL` (und gleichnamig im Objekt `S`): `years, fields, docs, atts, todos, exams, turnusTypes, turnusWeeks, turnusDays, events, notes, grades`.
 - Jeder Eintrag hat `id, createdAt, updatedAt, deleted`. Immer über `add()`, `touch()`, `del()` ändern (setzt `updatedAt`, speichert, stößt Sync an). Gelöscht wird nur weich (`deleted: true`), damit der Sync die Löschung weitergeben kann.
 - Schule vs. Alltag: Ein Lernfeld (`fields`) mit `yearId` gehört zur Schule, ohne `yearId` ist es eine Alltags-Kategorie.
+- Noten (`grades`): `value` (1–6), `raw`, `label`, `date`, `fieldId`, `note`, optional `zeugnis` (boolean). `isZeugnis(g)`: Feld gesetzt → gilt; fehlt es, zählt eine Bezeichnung „Zeugnis…“ als Zeugnisnote (alte Einträge). Lernfeld-Durchschnitt nur aus normalen Noten, Schuljahres-Gesamtdurchschnitt aus der neuesten Zeugnisnote je Lernfeld.
 - Lokale Speicherung: IndexedDB `schulvault` (aktuell Version 5). **Neue Sammlung anlegen:** in `COLL` und `S` eintragen und die Versionsnummer in `idbOpen()` um 1 erhöhen; Sync und Speicher übernehmen sie dann automatisch.
 - `localStorage`: `sv_cfg` (Sync-Einstellungen inkl. Token des Nutzers, nur im Browser), `sv_last`, `sv_space`, `sv_notified`, `sv_push` (Push auf diesem Gerät: `{ on, id, endpoint, checked }`).
 - Cache `sv-push-seen` (App und Service Worker): schon gezeigte Erinnerungs-Schlüssel, damit Push und lokale Meldung nicht doppelt piepen. Der Service Worker darf ihn beim Aktivieren nicht löschen.

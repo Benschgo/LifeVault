@@ -58,7 +58,7 @@ body::after{background:
 a{color:var(--accent);text-decoration:none}
 h1,h2,h3{margin:0;line-height:1.25}
 /* DIN für Titel, Zahlen und kurze Beschriftungen */
-#top h1,.sec-h h2,.mbox h3,.brand,#nav a,.tag,.chip,.pill,.badge,.btn,.seg button,.tabs button,.grp,.stat b,.gchip,.gbig,.favg,
+#top h1,.sec-h h2,.mbox h3,.brand,#nav a,.tag,.chip,.pill,.badge,.btn,.seg button,.tabs button,.grp,.stat b,.gchip,.favg,
 .calnav b,.cal-head,.cal-wk,.cal-day .dn,.wk-day,.today-hero,.fcard b,.ycard b,.ycard .big,label.lbl,.fab,.toast button{
   font-family:var(--font-d);font-stretch:87.5%;font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -434,10 +434,25 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
 .gchip{flex:none;min-width:48px;height:36px;padding:0 8px;border-radius:var(--radius-s);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3125rem;
   color:var(--tone,var(--text));background:color-mix(in srgb,var(--tone,var(--muted)) 12%,transparent);border:1px solid color-mix(in srgb,var(--tone,var(--muted)) 40%,transparent)}
 .favg{position:absolute;top:12px;right:12px;font-size:.95rem;font-weight:700;color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 45%,transparent);border-radius:var(--radius-s);padding:0 6px}
-.fcard:has(.favg) b{padding-right:62px}
-.yavg{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-.yavg b,.yavg small{display:block}
-.gbig{font-size:2.25rem;font-weight:700;line-height:1.1;color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 45%,transparent);border-top-width:3px;border-radius:var(--radius-s);padding:2px 12px}
+.fcard:has(.favg) b{padding-right:104px}
+/* Gesamtdurchschnitt im Schuljahr: schmale Zeile unter den Lernfeldern */
+.yavg{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:10px 14px;border-left:4px solid var(--tone,var(--ok))}
+.yavg b{display:block;font-family:var(--font-d);font-size:1rem;font-weight:600}
+.yavg small{display:block;color:var(--muted);font-size:.82rem}
+.yavg .gnum{flex:none;font-family:var(--font-d);font-size:1.25rem;font-weight:700;color:var(--tone,var(--text))}
+/* Zeugnisnote im Lernfeld: hervorgehobene Karte über den übrigen Noten */
+.zcard{display:flex;align-items:center;gap:14px;width:100%;text-align:left;margin-bottom:10px;padding:12px 14px;border-radius:var(--radius);font:inherit;color:var(--text);cursor:pointer;
+  background:color-mix(in srgb,var(--tone,var(--ok)) 10%,var(--card));border:1px solid color-mix(in srgb,var(--tone,var(--ok)) 45%,transparent);border-left:6px solid var(--tone,var(--ok))}
+.zcard .zval{flex:none;min-width:64px;height:52px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:1.9rem;font-weight:700;color:var(--tone,var(--ok));border:2px solid currentColor;border-radius:var(--radius-s)}
+.zcard b{display:block;font-family:var(--font-d);font-size:1.1rem;font-weight:600}
+.zcard small{display:block;color:var(--muted);font-size:.85rem}
+.zcard.leer{flex-direction:column;align-items:center;gap:2px;background:transparent;border:1px dashed color-mix(in srgb,var(--ok) 55%,transparent)}
+.zcard.leer b{display:inline-flex;align-items:center;gap:6px;color:var(--ok)}
+.zswitch{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);cursor:pointer}
+.zswitch input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--ok)}
+.zswitch b{display:block;font-weight:600}
+.zswitch small{display:block;color:var(--muted);font-size:.85rem}
+.zswitch:has(input:checked){border-color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,transparent)}
 .linkbtn{border:0;background:none;color:var(--accent);font-size:.9rem;cursor:pointer;padding:0}
 @media (max-width:400px){.stat{padding:9px 8px 8px}.stat b{font-size:1rem}}
 @media (max-width:560px){.tabs.tabs4{display:grid;grid-template-columns:1fr 1fr}}
@@ -530,7 +545,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
                 laufen im Kalender zentral zusammen.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
-const APP_VERSION = '3.4.2';
+const APP_VERSION = '3.5.0';
 const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
 const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
@@ -701,6 +716,12 @@ const fmtNum = (v, d = 1) => (+v).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replac
 const fmtGrade = g => g.raw ? g.raw.replace('.', ',') : fmtNum(g.value, 2);
 const gradesOfField = fid => live('grades').filter(g => g.fieldId === fid).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
 function gradeAvg(list) { return list.length ? list.reduce((n, g) => n + g.value, 0) / list.length : null; }
+/* Zeugnisnote: optionales Feld `zeugnis` an der Note. Ältere Einträge ohne das Feld, deren Bezeichnung mit „Zeugnis“
+   beginnt, gelten ebenfalls als Zeugnisnote (keine Umwandlung der Daten nötig). Zeugnisnoten zählen nicht zum
+   Lernfeld-Durchschnitt, sondern zum Gesamtdurchschnitt des Schuljahres (neueste Zeugnisnote je Lernfeld). */
+const isZeugnis = g => g.zeugnis != null ? !!g.zeugnis : /^zeugnis/i.test((g.label || '').trim());
+const normalGradesOfField = fid => gradesOfField(fid).filter(g => !isZeugnis(g));
+const zeugnisOfField = fid => gradesOfField(fid).find(isZeugnis) || null;
 const fmtAvg = v => v == null ? '–' : v.toFixed(2).replace('.', ',');
 const gradeTone = v => v == null ? '' : v < 2.5 ? 'g-good' : v < 3.5 ? 'g-ok' : v < 4.5 ? 'g-warn' : 'g-bad';
 const fieldsOfYear = yid => live('fields').filter(f => f.yearId === yid).sort((a, b) => cmp(a.name, b.name));
@@ -1697,15 +1718,16 @@ function vInhalte() {
 function vYear(id) {
   const y = byId('years', id); if (!y) return null;
   const fs = fieldsOfYear(id);
-  const avgs = fs.map(f => gradeAvg(gradesOfField(f.id))).filter(v => v != null);
-  const yAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : null;
-  let h = yAvg != null ? `<div class="card pad yavg"><span class="gbig ${gradeTone(yAvg)}">${fmtAvg(yAvg)}</span><span><b>Gesamtdurchschnitt</b><small>Mittel aus ${avgs.length} ${avgs.length === 1 ? 'Lernfeld' : 'Lernfeldern'} mit Noten</small></span></div>` : '';
-  h += `<div class="sec-h"><h2>Lernfelder</h2><button class="btn small" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld</button></div>`;
+  const zs = fs.map(f => zeugnisOfField(f.id)).filter(Boolean);
+  const yAvg = gradeAvg(zs);
+  let h = `<div class="sec-h"><h2>Lernfelder</h2><button class="btn small" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld</button></div>`;
   h += fs.length ? `<div class="grid">${fs.map(f => {
-    const nd = docsOfField(f.id).length, nt = todosOpen().filter(t => t.fieldId === f.id).length, av = gradeAvg(gradesOfField(f.id));
-    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}">${av != null ? `<span class="favg ${gradeTone(av)}">Ø ${fmtAvg(av)}</span>` : ''}<b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
+    const nd = docsOfField(f.id).length, nt = todosOpen().filter(t => t.fieldId === f.id).length, zg = zeugnisOfField(f.id);
+    return `<a class="card fcard" href="#/f/${f.id}" style="--c:${f.color || COLORS[0]}">${zg ? `<span class="favg ${gradeTone(zg.value)}" title="Zeugnisnote">Zeugnis ${esc(fmtGrade(zg))}</span>` : ''}<b>${esc(f.name)}</b><small>${nd} Unterlagen${nt ? ` · ${nt} offene Aufgaben` : ''}</small></a>`;
   }).join('')}</div>`
     : `<div class="card empty">${ic('folder')}<p>Noch keine Lernfelder. Lege z. B. „Lernfeld 1“ oder ein Fach an.</p><button class="btn primary" data-a="field-new" data-y="${id}">${ic('plus')} Lernfeld anlegen</button></div>`;
+  if (yAvg != null) h += `<div class="card yavg ${gradeTone(yAvg)}"><span><b>Gesamtdurchschnitt</b><small>aus den Zeugnisnoten von ${zs.length} von ${fs.length} ${fs.length === 1 ? 'Lernfeld' : 'Lernfeldern'}</small></span><span class="gnum">Ø ${fmtAvg(yAvg)}</span></div>`;
+  else if (fs.length) h += `<p class="hint" style="margin:12px 2px 0">Der Gesamtdurchschnitt erscheint hier, sobald du in den Lernfeldern Zeugnisnoten einträgst.</p>`;
   h += `<section style="margin-top:24px"><div class="sec-h"><h2>Notizen zum Schuljahr</h2></div>${noteBox(`years.${id}.note`, y.note, 'Allgemeine Notizen, Termine, Lehrer, Prüfungsplan …')}</section>`;
   return { title: y.name, back: '/inhalte', actions: `<button class="icon-btn" data-a="year-menu" data-id="${id}" aria-label="Mehr">${ic('more')}</button>`, body: h };
 }
@@ -1750,7 +1772,7 @@ function statTile(label, value, sub, cls = '', attrs = '') {
 }
 function gradeRow(g) {
   return `<div class="row" data-a="grade-edit" data-id="${g.id}" style="cursor:pointer"><span class="gchip ${gradeTone(g.value)}">${esc(fmtGrade(g))}</span>
-    <span class="grow"><b>${esc(g.label || 'Note')}</b><small>${esc([fmtDate(g.date), (g.note || '').split('\n')[0]].filter(Boolean).join(' · '))}</small></span></div>`;
+    <span class="grow"><b>${esc(g.label || (isZeugnis(g) ? 'Zeugnis' : 'Note'))}${isZeugnis(g) && !/^zeugnis/i.test((g.label || '').trim()) ? ' <span class="tag">Zeugnis</span>' : ''}</b><small>${esc([fmtDate(g.date), (g.note || '').split('\n')[0]].filter(Boolean).join(' · '))}</small></span></div>`;
 }
 function fieldOverviewHTML(f, sp, todos) {
   const t0 = today(), id = f.id;
@@ -1758,7 +1780,8 @@ function fieldOverviewHTML(f, sp, todos) {
   const nextDue = open.find(t => t.due);
   let h = '';
   if (sp === 'schule') {
-    const grades = gradesOfField(id), avg = gradeAvg(grades);
+    const grades = normalGradesOfField(id), avg = gradeAvg(grades), zg = zeugnisOfField(id);
+    const oldZ = gradesOfField(id).filter(g => isZeugnis(g) && g !== zg);   // ältere Zeugnisnoten (z. B. Halbjahr)
     const exams = live('exams').filter(e => e.fieldId === id);
     const upcoming = exams.filter(e => e.date >= t0).sort((a, b) => a.date.localeCompare(b.date));
     const past = exams.filter(e => e.date < t0).sort((a, b) => b.date.localeCompare(a.date));
@@ -1769,8 +1792,12 @@ function fieldOverviewHTML(f, sp, todos) {
       ${statTile('Aufgaben', String(open.length), nextDue ? 'nächste ' + esc(fmtDue(nextDue.due)) : (open.length ? 'ohne Datum' : 'alles erledigt'), 'k-todo', 'data-a="ftab" data-v="todos"')}
     </div>`;
     h += `<section><div class="sec-h kc" style="--k:var(--ok)"><h2>Noten</h2><button class="btn small" data-a="grade-new" data-f="${id}">${ic('plus')} Note</button></div>`;
-    h += grades.length ? `<div class="card">${grades.map(gradeRow).join('')}</div>`
-      : `<p class="hint" style="margin:0 2px">Noch keine Noten. Trag hier deine LK-, Test- oder mündlichen Noten ein – der Durchschnitt wird automatisch berechnet.</p>`;
+    h += zg ? `<button type="button" class="zcard ${gradeTone(zg.value)}" data-a="grade-edit" data-id="${zg.id}"><span class="zval">${esc(fmtGrade(zg))}</span>
+        <span class="grow"><b>Zeugnisnote</b><small>${esc([/^zeugnis$/i.test((zg.label || '').trim()) ? '' : zg.label, fmtDate(zg.date)].filter(Boolean).join(' · '))}</small><small>zählt für den Gesamtdurchschnitt im Schuljahr</small></span></button>`
+      : `<button type="button" class="zcard leer" data-a="grade-new" data-f="${id}" data-zeugnis="1"><b>${ic('plus')} Zeugnisnote eintragen</b><small>zählt für den Gesamtdurchschnitt im Schuljahr</small></button>`;
+    const rows = [...grades, ...oldZ].sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+    h += rows.length ? `<div class="card">${rows.map(gradeRow).join('')}</div>`
+      : `<p class="hint" style="margin:0 2px">Noch keine Noten. Trag hier deine LK-, Test- oder mündlichen Noten ein – der Durchschnitt für dieses Lernfeld wird automatisch berechnet.</p>`;
     h += `</section><section><div class="sec-h kc" style="--k:var(--orange)"><h2>LKs &amp; Arbeiten</h2><button class="btn small" data-a="exam-new" data-f="${id}">${ic('plus')} LK</button></div>`;
     h += upcoming.length ? `<div class="card">${upcoming.map(e => examRow(e, { noField: true })).join('')}</div>`
       : `<p class="hint" style="margin:0 2px">Keine anstehende LK. Was du im Kalender für dieses Lernfeld einträgst, erscheint hier.</p>`;
@@ -1798,12 +1825,13 @@ function fieldOverviewHTML(f, sp, todos) {
 const GRADE_KINDS = ['LK', 'Test', 'Mündlich', 'Referat', 'Projekt', 'Hausaufgabe', 'Zeugnis'];
 function gradeModal(id, preset = {}) {
   const g = id ? byId('grades', id) : null;
-  const fid = g ? g.fieldId : preset.fieldId;
-  return askModal(`<h3>${g ? 'Note bearbeiten' : 'Neue Note'}</h3><form>
+  const fid = g ? g.fieldId : preset.fieldId, zOn = g ? isZeugnis(g) : !!preset.zeugnis;
+  return askModal(`<h3>${g ? (zOn ? 'Zeugnisnote bearbeiten' : 'Note bearbeiten') : (zOn ? 'Zeugnisnote' : 'Neue Note')}</h3><form>
     <div class="two"><div><label class="lbl">Note</label><input class="inp" name="grade" value="${esc(g ? fmtGrade(g) : '')}" inputmode="decimal" placeholder="z. B. 2, 2,3 oder 2-" autocomplete="off"></div>
     <div><label class="lbl">Datum</label><input type="date" class="inp" name="date" value="${esc(g ? g.date : today())}"></div></div>
-    <label class="lbl">Wofür?</label><input class="inp" name="label" value="${esc(g ? g.label : '')}" placeholder="z. B. LK 1, Test Kapitel 3, Mündlich" autocomplete="off">
+    <label class="lbl">Wofür?</label><input class="inp" name="label" value="${esc(g ? g.label : (zOn ? 'Zeugnis' : ''))}" placeholder="z. B. LK 1, Test Kapitel 3, Mündlich" autocomplete="off">
     <div class="chips" style="margin-top:8px">${GRADE_KINDS.map(k => `<button type="button" class="chip btnlike" data-gk="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+    <label class="zswitch"><input type="checkbox" name="zeugnis" ${zOn ? 'checked' : ''}><span><b>Zeugnisnote</b><small>Wird hervorgehoben und zählt für den Gesamtdurchschnitt im Schuljahr, nicht für den Lernfeld-Durchschnitt.</small></span></label>
     <label class="lbl">${FWORD.schule}</label><select class="inp" name="field">${fieldOptions(fid, false, 'schule')}</select>
     <details class="more" ${g && g.note ? 'open' : ''}><summary>${ic('note')} Notiz</summary><textarea class="inp" name="note" style="min-height:64px" placeholder="z. B. Thema, Fehlerschwerpunkte …">\n${esc(g ? g.note : '')}</textarea></details>
     <p class="hint" data-err style="color:var(--danger);display:none">Bitte eine Note zwischen 1 und 6 eingeben (z. B. 2, 2,3 oder 2-).</p>
@@ -1813,6 +1841,7 @@ function gradeModal(id, preset = {}) {
     $$('[data-gk]', m).forEach(b => b.onclick = () => {
       const k = b.dataset.gk, n = live('grades').filter(x => x !== g && x.fieldId === F.field.value && (x.label || '').startsWith(k)).length;
       F.label.value = k === 'LK' || k === 'Test' ? `${k} ${n + 1}` : k;
+      F.zeugnis.checked = k === 'Zeugnis';
     });
     if (g) $('[data-del]', m).onclick = () => {
       done(null); del('grades', g); render();
@@ -1822,7 +1851,7 @@ function gradeModal(id, preset = {}) {
       ev.preventDefault();
       const raw = F.grade.value.trim(), v = parseGrade(raw);
       if (v == null) { $('[data-err]', m).style.display = ''; F.grade.focus(); return; }
-      const props = { value: v, raw: /[+-]/.test(raw) ? raw.replace(/\s+/g, '') : '', label: F.label.value.trim(), date: F.date.value || today(), fieldId: F.field.value || fid, note: F.note.value.trim() };
+      const props = { value: v, raw: /[+-]/.test(raw) ? raw.replace(/\s+/g, '') : '', label: F.label.value.trim(), date: F.date.value || today(), fieldId: F.field.value || fid, note: F.note.value.trim(), zeugnis: F.zeugnis.checked };
       if (g) { Object.assign(g, props); touch('grades', g); } else add('grades', props);
       done(true); render();
     };
@@ -2280,7 +2309,7 @@ const ACT = {
   },
   'space-switch': el => { setFilter(el.dataset.v); render(); },
   'note-edit': el => noteModal(el.dataset.id),
-  'grade-new': el => gradeModal(null, { fieldId: el.dataset.f }),
+  'grade-new': el => gradeModal(null, { fieldId: el.dataset.f, zeugnis: el.dataset.zeugnis === '1' }),
   'grade-edit': el => gradeModal(el.dataset.id),
   'field-quick-new': async el => {
     const f = await quickCreateField(el.dataset.space); if (!f) return;
