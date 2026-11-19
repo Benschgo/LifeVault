@@ -65,6 +65,7 @@ Bisherige Versionen zur Orientierung:
 | 3.4.2 | 18.11.2026 | klein | Kalenderbild nur noch hinter dem Kalender, Legende auf normaler Fläche |
 | 3.5.0 | 18.11.2026 | mittel | Zeugnisnote je Lernfeld (hervorgehoben), Lernfeld-Durchschnitt nur aus normalen Noten, Schuljahres-Durchschnitt aus Zeugnisnoten (klein unter den Lernfeldern) |
 | 3.6.0 | 18.11.2026 | mittel | Teilen in LifeVault (Fotos/Dateien/Text aus anderen Apps), wiederkehrende Aufgaben, Papierkorb (30 Tage, Zurückholen samt Unterelementen), Sicherung mit Fotos als ZIP |
+| 3.6.1 | 19.11.2026 | klein | neues Kalender-Hintergrundbild (Gaming-Garage mit Mustang statt Bergsee) |
 
 Ohne eigene Nummer: der zweite Upload am 24.09. (dieselben Dateien noch einmal) und die Claude-Code-Einrichtung am 16.11. (an der App hat sich nichts geändert). Neue Versionen hier unten in der Tabelle ergänzen.
 

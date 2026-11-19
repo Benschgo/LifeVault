@@ -360,13 +360,13 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
 .legend i.hol{background:var(--hatch);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 40%,transparent)}
 @media (max-width:400px){.cal-grid{grid-template-columns:22px repeat(7,1fr);gap:2px}.cal-day .dn{font-size:.9rem}.calnav b{font-size:1.125rem}}
 
-/* ---------- Kalender-Hintergrundbild (Bennys Bild „Bergsee bei Nacht“, nur Dunkelmodus) ----------
+/* ---------- Kalender-Hintergrundbild (Bennys Bild „Gaming-Garage mit Mustang“, nur Dunkelmodus) ----------
    Das Bild liegt nur hinter dem Kalender (.cal-bild um das Raster), die Legende darunter bleibt auf der normalen Fläche.
    Zum Entfernen: diesen Block, die Klasse „bild“ an .cal-panel in vCalMonth() und kalender-bild.webp löschen.
-   Lesbarkeit: dunkler Verlauf über dem Bild, Tage halb durchsichtig, Schatten unter der Schrift; Mond oben hinter der Wochentagszeile. */
+   Lesbarkeit: dunkler Verlauf über dem Bild, Tage halb durchsichtig, Schatten unter der Schrift. Neues Bild: Datei ersetzen und ?v= ändern (auch in sw.js). */
 @media (prefers-color-scheme:dark){
   .cal-panel.bild .cal-bild{margin:-8px -8px 0;padding:8px;border-radius:var(--radius) var(--radius) 0 0;
-    background:linear-gradient(180deg,rgba(9,12,16,.30),rgba(9,12,16,.10) 45%,rgba(9,12,16,.40)),url("kalender-bild.webp") 72% 100%/auto 112% no-repeat,#0d1116;
+    background:linear-gradient(180deg,rgba(9,12,16,.55),rgba(9,12,16,.12) 18%,rgba(9,12,16,.08) 60%,rgba(9,12,16,.35)),url("kalender-bild.webp?v=garage") 50% 50%/cover no-repeat,#0d1116;
     --cell:rgba(24,31,40,.56);--cell-we:rgba(14,18,23,.62);--cell-out:rgba(10,13,17,.52)}
   .cal-panel.bild .cal-bild:last-child{margin-bottom:-10px;border-radius:var(--radius)}
   .cal-panel.bild .legend{margin-top:0;border-top:0;padding-top:12px}
@@ -380,7 +380,7 @@ code{background:var(--accent-soft);padding:1px 6px;border-radius:var(--radius-s)
   .cal-panel.bild .cal-head:nth-child(8){color:#ff6b78}
 }
 @media (prefers-color-scheme:dark) and (min-width:900px){
-  .cal-panel.bild .cal-bild{margin:-12px -12px 0;padding:12px;background-position:center,72% 28%;background-size:auto,cover}
+  .cal-panel.bild .cal-bild{margin:-12px -12px 0;padding:12px;background-position:center,50% 52%;background-size:auto,cover}
   .cal-panel.bild .cal-bild:last-child{margin-bottom:-14px}
 }
 
@@ -554,7 +554,7 @@ button.stat:hover{border-color:var(--accent);border-top-color:var(--tone,var(--a
                 laufen im Kalender zentral zusammen.
    Alles lokal in IndexedDB, Sync optional über privates GitHub-Repo.
    ===================================================================== */
-const APP_VERSION = '3.6.0';
+const APP_VERSION = '3.6.1';
 const COLL = ['years', 'fields', 'docs', 'atts', 'todos', 'exams', 'turnusTypes', 'turnusWeeks', 'turnusDays', 'events', 'notes', 'grades'];
 const S = { years: [], fields: [], docs: [], atts: [], todos: [], exams: [], turnusTypes: [], turnusWeeks: [], turnusDays: [], events: [], notes: [], grades: [] };
 const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
